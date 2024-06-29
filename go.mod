@@ -1,4 +1,4 @@
-module github.com/pvskp/grpc-example
+module github.com/pvskp/semaphorex
 
 go 1.22.2
 
