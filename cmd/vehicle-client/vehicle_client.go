@@ -14,22 +14,33 @@ const (
 	serverAddress = "localhost:50051"
 )
 
+type vehicle struct {
+	name        string
+	id          int
+	vType       string
+	logicalTime int64
+}
+
 func main() {
-	// Conectar ao servidor gRPC
 	conn, err := grpc.NewClient(serverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
 	client := pb.NewCoordinationServiceClient(conn)
-	registerVehicle(client, "vehicle123", "car")
-	updateVehicleStatus(client, "vehicle123", 37.7749, -122.4194, "turn_left", 1)
-	getInstructions(client, "vehicle123")
-	syncLogicalClock(client, "vehicle123", 1)
-	electLeader(client, "vehicle123", 1)
+	v := NewVehicle("porshce", 1, "car")
+	v.registerVehicle(client, v.name, v.vType)
+	v.updateVehicleStatus(client, v.name, 37.7749, -122.4194, "turn_left", 1)
+	v.getInstructions(client, v.name)
+	v.syncLogicalClock(client, v.name, 1)
+	v.electLeader(client, v.name, 1)
 }
 
-func registerVehicle(client pb.CoordinationServiceClient, vehicleID, vehicleType string) {
+func NewVehicle(name string, id int, vType string) *vehicle {
+	return &vehicle{name, id, vType, 0}
+}
+
+func (v *vehicle) registerVehicle(client pb.CoordinationServiceClient, vehicleID, vehicleType string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -41,7 +52,7 @@ func registerVehicle(client pb.CoordinationServiceClient, vehicleID, vehicleType
 	log.Printf("RegisterVehicle Response: %v", res)
 }
 
-func updateVehicleStatus(client pb.CoordinationServiceClient, vehicleID string, latitude, longitude float64, intention string, logicalTime int64) {
+func (v *vehicle) updateVehicleStatus(client pb.CoordinationServiceClient, vehicleID string, latitude, longitude float64, intention string, logicalTime int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -57,9 +68,11 @@ func updateVehicleStatus(client pb.CoordinationServiceClient, vehicleID string, 
 		log.Fatalf("could not update vehicle status: %v", err)
 	}
 	log.Printf("UpdateVehicleStatus Response: %v", res)
+
+	v.logicalTime = res.LogicalTime
 }
 
-func getInstructions(client pb.CoordinationServiceClient, vehicleID string) {
+func (v *vehicle) getInstructions(client pb.CoordinationServiceClient, vehicleID string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -69,9 +82,10 @@ func getInstructions(client pb.CoordinationServiceClient, vehicleID string) {
 		log.Fatalf("could not get instructions: %v", err)
 	}
 	log.Printf("GetInstructions Response: %v", res)
+	v.logicalTime = res.LogicalTime
 }
 
-func syncLogicalClock(client pb.CoordinationServiceClient, vehicleID string, localTime int64) {
+func (v *vehicle) syncLogicalClock(client pb.CoordinationServiceClient, vehicleID string, localTime int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -81,9 +95,10 @@ func syncLogicalClock(client pb.CoordinationServiceClient, vehicleID string, loc
 		log.Fatalf("could not sync logical clock: %v", err)
 	}
 	log.Printf("SyncLogicalClock Response: %v", res)
+	v.logicalTime = res.UpdatedTime
 }
 
-func electLeader(client pb.CoordinationServiceClient, vehicleID string, logicalTime int64) {
+func (v *vehicle) electLeader(client pb.CoordinationServiceClient, vehicleID string, logicalTime int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

@@ -16,6 +16,7 @@ const (
 type server struct {
 	pb.UnimplementedCoordinationServiceServer
 	// Adicione campos adicionais para gerenciar o estado do servidor, se necessário
+	logicalTime int64
 }
 
 func (s *server) RegisterVehicle(ctx context.Context, req *pb.RegisterVehicleRequest) (*pb.RegisterVehicleResponse, error) {

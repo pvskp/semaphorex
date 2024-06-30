@@ -33,10 +33,12 @@ message UpdateVehicleStatusRequest {
 message UpdateVehicleStatusResponse {
   bool success = 1;
   string message = 2;
+  int64 logical_time = 3;
 }
 
 message GetInstructionsRequest {
   string vehicle_id = 1;
+  int64 logical_time = 2;
 }
 
 message GetInstructionsResponse {
