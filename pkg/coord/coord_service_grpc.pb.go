@@ -18,14 +18,135 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
+// VehicleDiscoveryClient is the client API for VehicleDiscovery service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type VehicleDiscoveryClient interface {
+	RegisterVehicle(ctx context.Context, in *RegisterVehicleRequest, opts ...grpc.CallOption) (*RegisterVehicleResponse, error)
+	ListRegisteredVehicles(ctx context.Context, in *ListRegisteredVehiclesRequest, opts ...grpc.CallOption) (*ListRegisteredVehiclesResponse, error)
+}
+
+type vehicleDiscoveryClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewVehicleDiscoveryClient(cc grpc.ClientConnInterface) VehicleDiscoveryClient {
+	return &vehicleDiscoveryClient{cc}
+}
+
+func (c *vehicleDiscoveryClient) RegisterVehicle(ctx context.Context, in *RegisterVehicleRequest, opts ...grpc.CallOption) (*RegisterVehicleResponse, error) {
+	out := new(RegisterVehicleResponse)
+	err := c.cc.Invoke(ctx, "/coord.VehicleDiscovery/RegisterVehicle", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vehicleDiscoveryClient) ListRegisteredVehicles(ctx context.Context, in *ListRegisteredVehiclesRequest, opts ...grpc.CallOption) (*ListRegisteredVehiclesResponse, error) {
+	out := new(ListRegisteredVehiclesResponse)
+	err := c.cc.Invoke(ctx, "/coord.VehicleDiscovery/ListRegisteredVehicles", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// VehicleDiscoveryServer is the server API for VehicleDiscovery service.
+// All implementations must embed UnimplementedVehicleDiscoveryServer
+// for forward compatibility
+type VehicleDiscoveryServer interface {
+	RegisterVehicle(context.Context, *RegisterVehicleRequest) (*RegisterVehicleResponse, error)
+	ListRegisteredVehicles(context.Context, *ListRegisteredVehiclesRequest) (*ListRegisteredVehiclesResponse, error)
+	mustEmbedUnimplementedVehicleDiscoveryServer()
+}
+
+// UnimplementedVehicleDiscoveryServer must be embedded to have forward compatible implementations.
+type UnimplementedVehicleDiscoveryServer struct {
+}
+
+func (UnimplementedVehicleDiscoveryServer) RegisterVehicle(context.Context, *RegisterVehicleRequest) (*RegisterVehicleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterVehicle not implemented")
+}
+func (UnimplementedVehicleDiscoveryServer) ListRegisteredVehicles(context.Context, *ListRegisteredVehiclesRequest) (*ListRegisteredVehiclesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRegisteredVehicles not implemented")
+}
+func (UnimplementedVehicleDiscoveryServer) mustEmbedUnimplementedVehicleDiscoveryServer() {}
+
+// UnsafeVehicleDiscoveryServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to VehicleDiscoveryServer will
+// result in compilation errors.
+type UnsafeVehicleDiscoveryServer interface {
+	mustEmbedUnimplementedVehicleDiscoveryServer()
+}
+
+func RegisterVehicleDiscoveryServer(s grpc.ServiceRegistrar, srv VehicleDiscoveryServer) {
+	s.RegisterService(&VehicleDiscovery_ServiceDesc, srv)
+}
+
+func _VehicleDiscovery_RegisterVehicle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterVehicleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VehicleDiscoveryServer).RegisterVehicle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/coord.VehicleDiscovery/RegisterVehicle",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VehicleDiscoveryServer).RegisterVehicle(ctx, req.(*RegisterVehicleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VehicleDiscovery_ListRegisteredVehicles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRegisteredVehiclesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VehicleDiscoveryServer).ListRegisteredVehicles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/coord.VehicleDiscovery/ListRegisteredVehicles",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VehicleDiscoveryServer).ListRegisteredVehicles(ctx, req.(*ListRegisteredVehiclesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// VehicleDiscovery_ServiceDesc is the grpc.ServiceDesc for VehicleDiscovery service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var VehicleDiscovery_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "coord.VehicleDiscovery",
+	HandlerType: (*VehicleDiscoveryServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RegisterVehicle",
+			Handler:    _VehicleDiscovery_RegisterVehicle_Handler,
+		},
+		{
+			MethodName: "ListRegisteredVehicles",
+			Handler:    _VehicleDiscovery_ListRegisteredVehicles_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "api/proto/coord_service.proto",
+}
+
 // CoordinationServiceClient is the client API for CoordinationService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CoordinationServiceClient interface {
-	RegisterVehicle(ctx context.Context, in *RegisterVehicleRequest, opts ...grpc.CallOption) (*RegisterVehicleResponse, error)
+	// rpc RegisterVehicle(RegisterVehicleRequest) returns (RegisterVehicleResponse);
 	UpdateVehicleStatus(ctx context.Context, in *UpdateVehicleStatusRequest, opts ...grpc.CallOption) (*UpdateVehicleStatusResponse, error)
 	GetInstructions(ctx context.Context, in *GetInstructionsRequest, opts ...grpc.CallOption) (*GetInstructionsResponse, error)
-	SyncLogicalClock(ctx context.Context, in *SyncLogicalClockRequest, opts ...grpc.CallOption) (*SyncLogicalClockResponse, error)
 	ElectLeader(ctx context.Context, in *ElectLeaderRequest, opts ...grpc.CallOption) (*ElectLeaderResponse, error)
 }
 
@@ -35,15 +156,6 @@ type coordinationServiceClient struct {
 
 func NewCoordinationServiceClient(cc grpc.ClientConnInterface) CoordinationServiceClient {
 	return &coordinationServiceClient{cc}
-}
-
-func (c *coordinationServiceClient) RegisterVehicle(ctx context.Context, in *RegisterVehicleRequest, opts ...grpc.CallOption) (*RegisterVehicleResponse, error) {
-	out := new(RegisterVehicleResponse)
-	err := c.cc.Invoke(ctx, "/coord.CoordinationService/RegisterVehicle", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *coordinationServiceClient) UpdateVehicleStatus(ctx context.Context, in *UpdateVehicleStatusRequest, opts ...grpc.CallOption) (*UpdateVehicleStatusResponse, error) {
@@ -64,15 +176,6 @@ func (c *coordinationServiceClient) GetInstructions(ctx context.Context, in *Get
 	return out, nil
 }
 
-func (c *coordinationServiceClient) SyncLogicalClock(ctx context.Context, in *SyncLogicalClockRequest, opts ...grpc.CallOption) (*SyncLogicalClockResponse, error) {
-	out := new(SyncLogicalClockResponse)
-	err := c.cc.Invoke(ctx, "/coord.CoordinationService/SyncLogicalClock", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *coordinationServiceClient) ElectLeader(ctx context.Context, in *ElectLeaderRequest, opts ...grpc.CallOption) (*ElectLeaderResponse, error) {
 	out := new(ElectLeaderResponse)
 	err := c.cc.Invoke(ctx, "/coord.CoordinationService/ElectLeader", in, out, opts...)
@@ -86,10 +189,9 @@ func (c *coordinationServiceClient) ElectLeader(ctx context.Context, in *ElectLe
 // All implementations must embed UnimplementedCoordinationServiceServer
 // for forward compatibility
 type CoordinationServiceServer interface {
-	RegisterVehicle(context.Context, *RegisterVehicleRequest) (*RegisterVehicleResponse, error)
+	// rpc RegisterVehicle(RegisterVehicleRequest) returns (RegisterVehicleResponse);
 	UpdateVehicleStatus(context.Context, *UpdateVehicleStatusRequest) (*UpdateVehicleStatusResponse, error)
 	GetInstructions(context.Context, *GetInstructionsRequest) (*GetInstructionsResponse, error)
-	SyncLogicalClock(context.Context, *SyncLogicalClockRequest) (*SyncLogicalClockResponse, error)
 	ElectLeader(context.Context, *ElectLeaderRequest) (*ElectLeaderResponse, error)
 	mustEmbedUnimplementedCoordinationServiceServer()
 }
@@ -98,17 +200,11 @@ type CoordinationServiceServer interface {
 type UnimplementedCoordinationServiceServer struct {
 }
 
-func (UnimplementedCoordinationServiceServer) RegisterVehicle(context.Context, *RegisterVehicleRequest) (*RegisterVehicleResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterVehicle not implemented")
-}
 func (UnimplementedCoordinationServiceServer) UpdateVehicleStatus(context.Context, *UpdateVehicleStatusRequest) (*UpdateVehicleStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVehicleStatus not implemented")
 }
 func (UnimplementedCoordinationServiceServer) GetInstructions(context.Context, *GetInstructionsRequest) (*GetInstructionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetInstructions not implemented")
-}
-func (UnimplementedCoordinationServiceServer) SyncLogicalClock(context.Context, *SyncLogicalClockRequest) (*SyncLogicalClockResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SyncLogicalClock not implemented")
 }
 func (UnimplementedCoordinationServiceServer) ElectLeader(context.Context, *ElectLeaderRequest) (*ElectLeaderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ElectLeader not implemented")
@@ -124,24 +220,6 @@ type UnsafeCoordinationServiceServer interface {
 
 func RegisterCoordinationServiceServer(s grpc.ServiceRegistrar, srv CoordinationServiceServer) {
 	s.RegisterService(&CoordinationService_ServiceDesc, srv)
-}
-
-func _CoordinationService_RegisterVehicle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterVehicleRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoordinationServiceServer).RegisterVehicle(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/coord.CoordinationService/RegisterVehicle",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoordinationServiceServer).RegisterVehicle(ctx, req.(*RegisterVehicleRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _CoordinationService_UpdateVehicleStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -180,24 +258,6 @@ func _CoordinationService_GetInstructions_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CoordinationService_SyncLogicalClock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SyncLogicalClockRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoordinationServiceServer).SyncLogicalClock(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/coord.CoordinationService/SyncLogicalClock",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoordinationServiceServer).SyncLogicalClock(ctx, req.(*SyncLogicalClockRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _CoordinationService_ElectLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ElectLeaderRequest)
 	if err := dec(in); err != nil {
@@ -224,20 +284,12 @@ var CoordinationService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CoordinationServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RegisterVehicle",
-			Handler:    _CoordinationService_RegisterVehicle_Handler,
-		},
-		{
 			MethodName: "UpdateVehicleStatus",
 			Handler:    _CoordinationService_UpdateVehicleStatus_Handler,
 		},
 		{
 			MethodName: "GetInstructions",
 			Handler:    _CoordinationService_GetInstructions_Handler,
-		},
-		{
-			MethodName: "SyncLogicalClock",
-			Handler:    _CoordinationService_SyncLogicalClock_Handler,
 		},
 		{
 			MethodName: "ElectLeader",
