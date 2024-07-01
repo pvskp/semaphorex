@@ -2,12 +2,19 @@ package main
 
 import (
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-var img *ebiten.Image
+var (
+	bg        *ebiten.Image
+	redCar    *ebiten.Image
+	blueCar   *ebiten.Image
+	purpleCar *ebiten.Image
+	yellowCar *ebiten.Image
+)
 
 const (
 	width  = 600
@@ -27,10 +34,28 @@ func (g *Game) Update() error {
 // Draw draws the game screen.
 // Draw is called every frame (typically 1/60[s] for 60Hz display).
 func (g *Game) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	// op.GeoM.Translate(50, 50)
-	// op.GeoM.Scale(1.5, 1)
-	screen.DrawImage(img, op)
+	bgOp := &ebiten.DrawImageOptions{}
+	screen.DrawImage(bg, bgOp)
+
+	redCarOp := &ebiten.DrawImageOptions{}
+	redCarOp.GeoM.Rotate(math.Pi / 2)
+	redCarOp.GeoM.Translate(280, 0)
+	screen.DrawImage(redCar, redCarOp)
+
+	blueCarOp := &ebiten.DrawImageOptions{}
+	blueCarOp.GeoM.Rotate(math.Pi)
+	blueCarOp.GeoM.Translate(600, 280)
+	screen.DrawImage(blueCar, blueCarOp)
+
+	yellowCarOp := &ebiten.DrawImageOptions{}
+	// yellowCarOp.GeoM.Rotate(0)
+	yellowCarOp.GeoM.Translate(0, 320)
+	screen.DrawImage(yellowCar, yellowCarOp)
+
+	purpleCarOp := &ebiten.DrawImageOptions{}
+	purpleCarOp.GeoM.Rotate(3 * math.Pi / 2)
+	purpleCarOp.GeoM.Translate(320, 600)
+	screen.DrawImage(purpleCar, purpleCarOp)
 }
 
 // Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
@@ -52,7 +77,28 @@ func main() {
 
 func init() {
 	var err error
-	img, _, err = ebitenutil.NewImageFromFile("./road.png")
+
+	bg, _, err = ebitenutil.NewImageFromFile("./road.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	redCar, _, err = ebitenutil.NewImageFromFile("./red_car.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	blueCar, _, err = ebitenutil.NewImageFromFile("./blue_car.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	yellowCar, _, err = ebitenutil.NewImageFromFile("./yellow_car.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	purpleCar, _, err = ebitenutil.NewImageFromFile("./purple_car.png")
 	if err != nil {
 		log.Fatal(err)
 	}
