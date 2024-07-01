@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"math"
+	"os"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -18,9 +21,14 @@ var (
 	purpleCar *ebiten.Image
 	yellowCar *ebiten.Image
 
-	serverAddress = "localhost:8001"
 	serverConn    *grpc.ClientConn
 	serverClient  pb.VehicleDiscoveryClient
+	serverAddress string
+
+	upSlice    = []*pb.Vehicle{}
+	downSlice  = []*pb.Vehicle{}
+	rightSlice = []*pb.Vehicle{}
+	leftSlice  = []*pb.Vehicle{}
 )
 
 const (
@@ -35,6 +43,7 @@ type Game struct{}
 // Update is called every tick (1/60 [s] by default).
 func (g *Game) Update() error {
 	// Write your game's logical update.
+	checkForUpdates()
 	return nil
 }
 
@@ -43,6 +52,11 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	bgOp := &ebiten.DrawImageOptions{}
 	screen.DrawImage(bg, bgOp)
+
+	for _, vehicle := range vehicleList {
+		spawnVehicle(screen, vehicle)
+	}
+
 	spawnRedCar(screen)
 	spawnBlueCar(screen)
 	spawnYellowCar(screen)
@@ -94,8 +108,27 @@ func spawnPurpleCar(screen *ebiten.Image) {
 	screen.DrawImage(purpleCar, purpleCarOp)
 }
 
+func checkForUpdates() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req := &pb.GetVehiclesDirectionsRequest{}
+	res, err := serverClient.GetVehiclesDirections(ctx, req)
+	if err != nil {
+		log.Printf("Failed to get vehicle directions: %v", err)
+		return
+	}
+
+	upSlice = res.Up
+	downSlice = res.Down
+	leftSlice = res.Left
+	rightSlice = res.Right
+}
+
 func init() {
 	var err error
+
+	serverAddress = os.Getenv("SD_SERVER_ADDRESS")
 
 	serverConn, err = grpc.NewClient(serverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

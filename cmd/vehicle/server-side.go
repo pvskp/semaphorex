@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 
@@ -10,7 +11,7 @@ import (
 )
 
 func (v *Vehicle) StartServer() {
-	lis, err := net.Listen("tcp", vehiclePort)
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", vehiclePort))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}

@@ -66,8 +66,24 @@ func (vd *VehicleDiscovery) UpdateVehicleList(ctx context.Context, req *pb.Updat
 }
 
 func (vd *VehicleDiscovery) RegisterVehicle(ctx context.Context, req *pb.RegisterVehicleRequest) (*pb.RegisterVehicleResponse, error) {
+	vd.mu.Lock()
+	defer vd.mu.Unlock()
+
 	log.Printf("RegisterVehicle request: %v", req)
 	vd.VehiclesConnected = append(vd.VehiclesConnected, req.Vehicle)
+
+	// Atualizar as direções dos veículos
+	switch req.Vehicle.Direction {
+	case "up":
+		upSlice = append(upSlice, req.Vehicle)
+	case "down":
+		downSlice = append(downSlice, req.Vehicle)
+	case "left":
+		leftSlice = append(leftSlice, req.Vehicle)
+	case "right":
+		rightSlice = append(rightSlice, req.Vehicle)
+	}
+
 	return &pb.RegisterVehicleResponse{
 		Success: true,
 		Message: "Vehicle registered successfully",
@@ -75,6 +91,9 @@ func (vd *VehicleDiscovery) RegisterVehicle(ctx context.Context, req *pb.Registe
 }
 
 func (vd *VehicleDiscovery) ListRegisteredVehicles(ctx context.Context, req *pb.ListRegisteredVehiclesRequest) (*pb.ListRegisteredVehiclesResponse, error) {
+	vd.mu.Lock()
+	defer vd.mu.Unlock()
+
 	log.Printf("ListRegisteredVehicles request: %v", req)
 	return &pb.ListRegisteredVehiclesResponse{
 		Vehicles: vd.VehiclesConnected,

@@ -13,9 +13,18 @@ var (
 func main() {
 	v := NewVehicle("porshce")
 	v.StartServer()
-	v.ConnectToServers()
+	v.ConnectToVDServer()
 	v.ClientRegisterVehicle()
-	v.GetPeers()
+
+	log.Println("Waiting for peers...")
+	for {
+		v.GetPeers()
+		if len(v.peers) > 0 {
+			break
+		}
+	}
+
+	v.InitiateElection()
 
 	defer v.LeaderConn.Close()
 	defer v.DiscoveryConn.Close()
@@ -25,6 +34,10 @@ func main() {
 			v.UpdateVehicleList()
 		} else {
 			// is not leader
+			if v.LeaderConn == nil {
+				v.ConnectToLeader()
+			}
+			log.Printf("%s is not the leader. Getting instructions from %s...", v.Address, leaderAddress)
 			v.ClientGetInstructions()
 
 			if !v.CheckLeaderHealth() {
@@ -40,4 +53,11 @@ func init() {
 	if vehiclePort == "" {
 		log.Fatalf("VEHICLE_PORT is empty")
 	}
+	log.Printf("VehiclePort: %s", vehiclePort)
+
+	SDServerAddress = os.Getenv("SD_SERVER_ADDRESS")
+	if SDServerAddress == "" {
+		log.Fatalf("SD_SERVER_ADDRESS is empty")
+	}
+	log.Printf("SDServerAddress: %s", SDServerAddress)
 }

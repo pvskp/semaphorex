@@ -1,0 +1,119 @@
+services:
+
+  vehicle-discovery:
+    build:
+      context: .
+      dockerfile: ./cmd/vehicle-discovery/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - SD_SERVER_ADDRESS=localhost:8001
+
+  vehicle1:
+    build:
+      context: .
+      dockerfile: ./cmd/vehicle/Dockerfile
+    depends_on:
+      - vehicle-discovery
+    environment:
+      - VEHICLE_NAME=vehicle1
+      - VEHICLE_PORT=50051
+      - SD_SERVER_ADDRESS=vehicle-discovery:8001
+    ports:
+      - "50051:50051"
+
+  vehicle2:
+    build:
+      context: .
+      dockerfile: "./cmd/vehicle/Dockerfile"
+    depends_on:
+      - vehicle-discovery
+    environment:
+      - VEHICLE_NAME=vehicle2
+      - VEHICLE_PORT=50052
+      - SD_SERVER_ADDRESS=vehicle-discovery:8001
+    ports:
+      - "50052:50052"
+
+  # vehicle3:
+  #   build:
+  #     context: .
+  #     dockerfile: ./cmd/vehicle/Dockerfile
+  #   depends_on:
+  #     - vehicle-discovery
+  #   environment:
+  #     - VEHICLE_PORT=50053
+  #     - SD_SERVER_ADDRESS=localhost:8001
+  #   ports:
+  #     - "50053:50053"
+  #
+  # vehicle4:
+  #   build:
+  #     context: .
+  #     dockerfile: ./cmd/vehicle/Dockerfile
+  #   depends_on:
+  #     - vehicle-discovery
+  #   environment:
+  #     - VEHICLE_PORT=50054
+  #     - SD_SERVER_ADDRESS=localhost:8001
+  #   ports:
+  #     - "50054:50054"
+  #
+  # vehicle5:
+  #   build:
+  #     context: .
+  #     dockerfile: ./cmd/vehicle/Dockerfile
+  #   depends_on:
+  #     - vehicle-discovery
+  #   environment:
+  #     - VEHICLE_PORT=50055
+  #     - SD_SERVER_ADDRESS=localhost:8001
+  #   ports:
+  #     - "50055:50055"
+  #
+  # vehicle6:
+  #   build:
+  #     context: .
+  #     dockerfile: ./cmd/vehicle/Dockerfile
+  #   depends_on:
+  #     - vehicle-discovery
+  #   environment:
+  #     - VEHICLE_PORT=50056
+  #     - SD_SERVER_ADDRESS=localhost:8001
+  #   ports:
+  #     - "50056:50056"
+  #
+  # vehicle7:
+  #   build:
+  #     context: .
+  #     dockerfile: ./cmd/vehicle/Dockerfile
+  #   depends_on:
+  #     - vehicle-discovery
+  #   environment:
+  #     - VEHICLE_PORT=50057
+  #     - SD_SERVER_ADDRESS=localhost:8001
+  #   ports:
+  #     - "50057:50057"
+  #
+  # vehicle8:
+  #   build:
+  #     context: .
+  #     dockerfile: ./cmd/vehicle/Dockerfile
+  #   depends_on:
+  #     - vehicle-discovery
+  #   environment:
+  #     - VEHICLE_PORT=50058
+  #     - SD_SERVER_ADDRESS=localhost:8001
+  #   ports:
+  #     - "50058:50058"
+
+  # simulation:
+  #   build:
+  #     context: .
+  #     dockerfile: ./cmd/simulation/Dockerfile
+  #   depends_on:
+  #     - vehicle-discovery
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - SD_SERVER_ADDRESS=localhost:8001
