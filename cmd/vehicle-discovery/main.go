@@ -4,15 +4,24 @@ import (
 	"context"
 	"log"
 	"net"
+	"sync"
 
 	pb "github.com/pvskp/semaphorex/pkg/coord"
 	"google.golang.org/grpc"
+)
+
+var (
+	upSlice    = []*pb.Vehicle{}
+	downSlice  = []*pb.Vehicle{}
+	leftSlice  = []*pb.Vehicle{}
+	rightSlice = []*pb.Vehicle{}
 )
 
 type VehicleDiscovery struct {
 	pb.UnimplementedVehicleDiscoveryServer
 	Port              int
 	VehiclesConnected []*pb.Vehicle
+	mu                sync.Mutex
 }
 
 func NewVehicleDiscovery(port int) *VehicleDiscovery {
@@ -23,15 +32,49 @@ func NewVehicleDiscovery(port int) *VehicleDiscovery {
 
 }
 
-func (vd VehicleDiscovery) RegisterVehicle(ctx context.Context, req *pb.RegisterVehicleRequest) (*pb.RegisterVehicleResponse, error) {
-	log.Printf("RegisterVehicle request: %v", req)
-	return &pb.RegisterVehicleResponse{
-		Success: true,
-		Message: "",
+func (vd *VehicleDiscovery) GetVehiclesDirections(ctx context.Context, req *pb.GetVehiclesDirectionsRequest) (*pb.GetVehiclesDirectionsResponse, error) {
+	vd.mu.Lock()
+	defer vd.mu.Unlock()
+
+	return &pb.GetVehiclesDirectionsResponse{
+		Up:    upSlice,
+		Down:  downSlice,
+		Left:  leftSlice,
+		Right: rightSlice,
 	}, nil
 }
 
-func (vd VehicleDiscovery) ListRegisteredVehicles(ctx context.Context, req *pb.ListRegisteredVehiclesRequest) (*pb.ListRegisteredVehiclesResponse, error) {
+func (vd *VehicleDiscovery) UpdateVehicleList(ctx context.Context, req *pb.UpdateVehicleListRequest) (*pb.UpdateVehicleListResponse, error) {
+	vd.mu.Lock()
+	defer vd.mu.Unlock()
+
+	for _, value := range req.Vehicles {
+		switch value.Direction {
+		case "up":
+			upSlice = append(upSlice, value)
+		case "down":
+			downSlice = append(downSlice, value)
+		case "left":
+			leftSlice = append(leftSlice, value)
+		case "right":
+			rightSlice = append(rightSlice, value)
+		}
+	}
+	return &pb.UpdateVehicleListResponse{
+		Success: true,
+	}, nil
+}
+
+func (vd *VehicleDiscovery) RegisterVehicle(ctx context.Context, req *pb.RegisterVehicleRequest) (*pb.RegisterVehicleResponse, error) {
+	log.Printf("RegisterVehicle request: %v", req)
+	vd.VehiclesConnected = append(vd.VehiclesConnected, req.Vehicle)
+	return &pb.RegisterVehicleResponse{
+		Success: true,
+		Message: "Vehicle registered successfully",
+	}, nil
+}
+
+func (vd *VehicleDiscovery) ListRegisteredVehicles(ctx context.Context, req *pb.ListRegisteredVehiclesRequest) (*pb.ListRegisteredVehiclesResponse, error) {
 	log.Printf("ListRegisteredVehicles request: %v", req)
 	return &pb.ListRegisteredVehiclesResponse{
 		Vehicles: vd.VehiclesConnected,

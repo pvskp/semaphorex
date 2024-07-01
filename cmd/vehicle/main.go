@@ -1,7 +1,13 @@
 package main
 
 import (
+	"log"
+	"os"
 	"time"
+)
+
+var (
+	vehiclePort string
 )
 
 func main() {
@@ -16,6 +22,7 @@ func main() {
 
 	for {
 		if v.IsLeader {
+			v.UpdateVehicleList()
 		} else {
 			// is not leader
 			v.ClientGetInstructions()
@@ -25,5 +32,12 @@ func main() {
 			}
 		}
 		time.Sleep(1 * time.Second)
+	}
+}
+
+func init() {
+	vehiclePort = os.Getenv("VEHICLE_PORT")
+	if vehiclePort == "" {
+		log.Fatalf("VEHICLE_PORT is empty")
 	}
 }

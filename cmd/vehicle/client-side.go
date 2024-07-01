@@ -15,7 +15,6 @@ import (
 
 const (
 	SDServerAddress = "localhost:50053"
-	vehiclePort     = "50052"
 )
 
 var (
@@ -23,10 +22,15 @@ var (
 )
 
 func NewVehicle(name string) *Vehicle {
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal("Couldn't get hostname")
+	// hostname, err := os.Hostname()
+	hostname := os.Getenv("HOSTNAME")
+	if hostname == "" {
+		log.Fatalf("Hostname is empty")
 	}
+
+	// if err != nil {
+	// 	log.Fatal("Couldn't get hostname")
+	// }
 
 	return &Vehicle{
 		Vehicle: &pb.Vehicle{
@@ -35,11 +39,9 @@ func NewVehicle(name string) *Vehicle {
 			Address:     hostname,
 			IsLeader:    false,
 			LogicalTime: 0,
-			PosX:        0,
-			PosY:        0,
 		},
 
-		peers:           []string{},
+		peers:           []*pb.Vehicle{},
 		LeaderConn:      nil,
 		DiscoveryConn:   nil,
 		LeaderClient:    nil,
@@ -48,7 +50,34 @@ func NewVehicle(name string) *Vehicle {
 	}
 }
 
+func (v *Vehicle) UpdateVehicleList() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	client := v.DiscoveryClient
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	req := &pb.UpdateVehicleListRequest{
+		Vehicles: v.peers,
+	}
+
+	res, err := client.UpdateVehicleList(ctx, req)
+	if err != nil {
+		log.Fatalf("could not update vehicle list: %v", err)
+	}
+
+	if !res.Success {
+		log.Println("Error updating vehicle list")
+	}
+
+	log.Println("Vehicle list updated successfully")
+}
+
 func (v *Vehicle) ConnectToServers() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	leaderConn, err := grpc.NewClient(leaderAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -80,8 +109,6 @@ func (v *Vehicle) ClientRegisterVehicle() {
 	req := &pb.RegisterVehicleRequest{Vehicle: &pb.Vehicle{
 		Name:        v.Name,
 		Address:     v.Address,
-		PosX:        v.PosX,
-		PosY:        v.PosY,
 		IsLeader:    false,
 		LogicalTime: v.LogicalTime,
 	}}
@@ -108,6 +135,9 @@ func (v *Vehicle) ClientGetInstructions() {
 }
 
 func (v *Vehicle) GetPeers() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	client := v.DiscoveryClient
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -125,44 +155,70 @@ func (v *Vehicle) GetPeers() {
 		}
 
 		if value.Address != v.Address {
-			v.peers = append(v.peers, value.Address)
+			v.peers = append(v.peers, value)
 		}
 	}
-
 }
 
 func (v *Vehicle) InitiateElection() {
 	log.Println("Initiating leader election")
+	v.mu.Lock()
+	v.LogicalTime++
+	electionResultCh := make(chan *pb.ElectLeaderResponse, len(v.peers))
+	var wg sync.WaitGroup
+	v.mu.Unlock()
+
 	for _, peer := range v.peers {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		req := &pb.ElectLeaderRequest{
-			RequesterId: v.Id,
-			LogicalTime: v.LogicalTime,
-		}
+		wg.Add(1)
+		go func(peer *pb.Vehicle) {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
 
-		peerConn, err := grpc.NewClient(peer, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			log.Fatalf("did not connect: %v", err)
-		}
-		defer peerConn.Close()
-		if err != nil {
-			log.Fatalf("did not connect to peer %s: %v", peer, err)
-		}
+			req := &pb.ElectLeaderRequest{
+				RequesterId: v.Id,
+				LogicalTime: v.LogicalTime,
+			}
 
-		peerClient := pb.NewCoordinationServiceClient(v.LeaderConn)
+			peerConn, err := grpc.Dial(peer.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Printf("did not connect to peer %s: %v", peer.Address, err)
+				return
+			}
+			defer peerConn.Close()
 
-		res, err := peerClient.ElectLeader(ctx, req)
-		if err != nil {
-			log.Printf("Error during leader election: %v", err)
-			continue
-		}
-		log.Printf("Leader election response: %v", res)
-		if res.LeaderId != v.Id {
-			v.IsLeader = false
-			return
+			peerClient := pb.NewCoordinationServiceClient(peerConn)
+			res, err := peerClient.ElectLeader(ctx, req)
+			if err != nil {
+				log.Printf("Error during leader election: %v", err)
+				return
+			}
+			electionResultCh <- res
+		}(peer)
+	}
+
+	wg.Wait()
+	close(electionResultCh)
+
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	var highestLogicalTime int64
+	var newLeaderId string
+
+	for res := range electionResultCh {
+		if res.LeaderTime > highestLogicalTime {
+			highestLogicalTime = res.LeaderTime
+			newLeaderId = res.LeaderId
 		}
 	}
-	v.IsLeader = true
-	log.Printf("Vehicle %s is the new coordinator", v.Id)
+
+	if newLeaderId == v.Id {
+		v.IsLeader = true
+		log.Printf("Vehicle %s is the new coordinator", v.Id)
+	} else {
+		v.IsLeader = false
+		leaderAddress = newLeaderId
+		log.Printf("Vehicle %s is not the leader. New leader is %s", v.Id, newLeaderId)
+	}
 }

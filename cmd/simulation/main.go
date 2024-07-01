@@ -6,6 +6,9 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	pb "github.com/pvskp/semaphorex/pkg/coord"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -14,6 +17,10 @@ var (
 	blueCar   *ebiten.Image
 	purpleCar *ebiten.Image
 	yellowCar *ebiten.Image
+
+	serverAddress = "localhost:8001"
+	serverConn    *grpc.ClientConn
+	serverClient  pb.VehicleDiscoveryClient
 )
 
 const (
@@ -36,26 +43,10 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	bgOp := &ebiten.DrawImageOptions{}
 	screen.DrawImage(bg, bgOp)
-
-	redCarOp := &ebiten.DrawImageOptions{}
-	redCarOp.GeoM.Rotate(math.Pi / 2)
-	redCarOp.GeoM.Translate(280, 0)
-	screen.DrawImage(redCar, redCarOp)
-
-	blueCarOp := &ebiten.DrawImageOptions{}
-	blueCarOp.GeoM.Rotate(math.Pi)
-	blueCarOp.GeoM.Translate(600, 280)
-	screen.DrawImage(blueCar, blueCarOp)
-
-	yellowCarOp := &ebiten.DrawImageOptions{}
-	// yellowCarOp.GeoM.Rotate(0)
-	yellowCarOp.GeoM.Translate(0, 320)
-	screen.DrawImage(yellowCar, yellowCarOp)
-
-	purpleCarOp := &ebiten.DrawImageOptions{}
-	purpleCarOp.GeoM.Rotate(3 * math.Pi / 2)
-	purpleCarOp.GeoM.Translate(320, 600)
-	screen.DrawImage(purpleCar, purpleCarOp)
+	spawnRedCar(screen)
+	spawnBlueCar(screen)
+	spawnYellowCar(screen)
+	spawnPurpleCar(screen)
 }
 
 // Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
@@ -75,8 +66,43 @@ func main() {
 	}
 }
 
+func spawnRedCar(screen *ebiten.Image) {
+	redCarOp := &ebiten.DrawImageOptions{}
+	redCarOp.GeoM.Rotate(math.Pi / 2)
+	redCarOp.GeoM.Translate(280, 0)
+	screen.DrawImage(redCar, redCarOp)
+}
+
+func spawnBlueCar(screen *ebiten.Image) {
+	blueCarOp := &ebiten.DrawImageOptions{}
+	blueCarOp.GeoM.Rotate(math.Pi)
+	blueCarOp.GeoM.Translate(600, 280)
+	screen.DrawImage(blueCar, blueCarOp)
+}
+
+func spawnYellowCar(screen *ebiten.Image) {
+	yellowCarOp := &ebiten.DrawImageOptions{}
+	// yellowCarOp.GeoM.Rotate(0)
+	yellowCarOp.GeoM.Translate(0, 320)
+	screen.DrawImage(yellowCar, yellowCarOp)
+}
+
+func spawnPurpleCar(screen *ebiten.Image) {
+	purpleCarOp := &ebiten.DrawImageOptions{}
+	purpleCarOp.GeoM.Rotate(3 * math.Pi / 2)
+	purpleCarOp.GeoM.Translate(320, 600)
+	screen.DrawImage(purpleCar, purpleCarOp)
+}
+
 func init() {
 	var err error
+
+	serverConn, err = grpc.NewClient(serverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+
+	serverClient = pb.NewVehicleDiscoveryClient(serverConn)
 
 	bg, _, err = ebitenutil.NewImageFromFile("./road.png")
 	if err != nil {

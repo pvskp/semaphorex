@@ -15,6 +15,6 @@ type Vehicle struct {
 	DiscoveryConn   *grpc.ClientConn
 	LeaderClient    pb.CoordinationServiceClient
 	DiscoveryClient pb.VehicleDiscoveryClient
-	peers           []string
+	peers           []*pb.Vehicle
 	mu              sync.Mutex
 }

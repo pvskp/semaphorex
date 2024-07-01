@@ -45,13 +45,13 @@ func (v *Vehicle) GetInstructions(ctx context.Context, req *pb.GetInstructionsRe
 func (v *Vehicle) ElectLeader(ctx context.Context, req *pb.ElectLeaderRequest) (*pb.ElectLeaderResponse, error) {
 	log.Printf("ElectLeader request: %v", req)
 	v.mu.Lock()
+	defer v.mu.Unlock()
 
 	if req.LogicalTime > v.LogicalTime {
 		v.LogicalTime = req.LogicalTime
 	}
 
 	v.LogicalTime++
-	v.mu.Unlock()
 
 	// Lógica para eleger um líder
 	if v.Id > req.RequesterId {

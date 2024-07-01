@@ -5,6 +5,8 @@ option go_package = "./coord";
 package coord;
 
 service VehicleDiscovery {
+  rpc UpdateVehicleList(UpdateVehicleListRequest) returns (UpdateVehicleListResponse);
+  rpc GetVehiclesDirections(GetVehiclesDirectionsRequest) returns (GetVehiclesDirectionsResponse);
   rpc RegisterVehicle(RegisterVehicleRequest) returns (RegisterVehicleResponse);
   rpc ListRegisteredVehicles(ListRegisteredVehiclesRequest) returns (ListRegisteredVehiclesResponse);
 }
@@ -14,6 +16,24 @@ service CoordinationService {
   rpc UpdateVehicleStatus(UpdateVehicleStatusRequest) returns (UpdateVehicleStatusResponse);
   rpc GetInstructions(GetInstructionsRequest) returns (GetInstructionsResponse);
   rpc ElectLeader(ElectLeaderRequest) returns (ElectLeaderResponse);
+}
+
+message GetVehiclesDirectionsRequest {}
+
+message GetVehiclesDirectionsResponse {
+  repeated Vehicle up = 1;
+  repeated Vehicle right = 2;
+  repeated Vehicle down = 3;
+  repeated Vehicle left = 4;
+
+}
+
+message UpdateVehicleListRequest {
+  repeated Vehicle vehicles = 1;
+}
+
+message UpdateVehicleListResponse {
+  bool success = 1;
 }
 
 message ListRegisteredVehiclesRequest {}
@@ -65,9 +85,8 @@ message ElectLeaderResponse {
 message Vehicle {
   string name = 1;
   string address = 2;
-  int64 PosX = 3;
-  int64 PosY = 4;
-  int64 logical_time = 5;
-  bool is_leader = 6;
-  string id = 7;
+  string direction = 3;
+  int64 logical_time = 4;
+  bool is_leader = 5;
+  string id = 6;
 }
