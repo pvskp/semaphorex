@@ -83,9 +83,15 @@ func (v *Vehicle) UpdateVehicleList() {
 	client := v.DiscoveryClient.(pb.VehicleDiscoveryClient)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	allPeers := []*pb.Vehicle{}
+
+	for _, i := range [][]*pb.Vehicle{upSlice, leftSlice, rightSlice, downSlice} {
+		allPeers = append(allPeers, i...)
+	}
+	allPeers = append(allPeers, v.Vehicle)
 
 	req := &pb.UpdateVehicleListRequest{
-		Vehicles:    append(v.peers, v.Vehicle),
+		Vehicles:    allPeers,
 		LogicalTime: v.LogicalTime,
 	}
 

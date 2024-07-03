@@ -70,19 +70,24 @@ func (c *Car) Spawn(screen *ebiten.Image) {
 		switch c.Dir {
 		case up:
 			c.Representation.Image = redCar
+			c.Position = []float64{280, 0}
 			c.Representation.ImageOptions.GeoM.Rotate(math.Pi / 2)
-			c.Representation.ImageOptions.GeoM.Translate(280, 0)
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		case down:
 			c.Representation.Image = blueCar
+
+			c.Position = []float64{600, 280}
 			c.Representation.ImageOptions.GeoM.Rotate(math.Pi)
-			c.Representation.ImageOptions.GeoM.Translate(600, 280)
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		case left:
 			c.Representation.Image = yellowCar
-			c.Representation.ImageOptions.GeoM.Translate(0, 320)
+			c.Position = []float64{0, 320}
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		case right:
 			c.Representation.Image = purpleCar
+			c.Position = []float64{320, 600}
 			c.Representation.ImageOptions.GeoM.Rotate(3 * math.Pi / 2)
-			c.Representation.ImageOptions.GeoM.Translate(320, 600)
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		}
 	}
 
