@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	// "fmt"
 	"log"
@@ -31,6 +32,8 @@ var (
 	downSlice  = []*Car{}
 	rightSlice = []*Car{}
 	leftSlice  = []*Car{}
+
+	deleted = []*Car{}
 )
 
 type Direction int
@@ -69,56 +72,104 @@ func (c *Car) Spawn(screen *ebiten.Image) {
 	if !c.Spawned {
 		switch c.Dir {
 		case up:
-			c.Representation.Image = redCar
+			c.Representation.Image, _, _ = ebitenutil.NewImageFromFile("./red_car.png")
 			c.Position = []float64{280, 0}
 			c.Representation.ImageOptions.GeoM.Rotate(math.Pi / 2)
 			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		case down:
-			c.Representation.Image = blueCar
-			c.Position = []float64{600, 280}
-			c.Representation.ImageOptions.GeoM.Rotate(math.Pi)
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
-		case left:
-			c.Representation.Image = yellowCar
-			c.Position = []float64{0, 320}
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
-		case right:
-			c.Representation.Image = purpleCar
+			c.Representation.Image, _, _ = ebitenutil.NewImageFromFile("./blue_car.png")
 			c.Position = []float64{320, 600}
 			c.Representation.ImageOptions.GeoM.Rotate(3 * math.Pi / 2)
 			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
+		case left:
+			c.Representation.Image, _, _ = ebitenutil.NewImageFromFile("./yellow_car.png")
+			c.Position = []float64{0, 320}
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
+		case right:
+			c.Representation.Image, _, _ = ebitenutil.NewImageFromFile("./purple_car.png")
+			c.Position = []float64{600, 280}
+			c.Representation.ImageOptions.GeoM.Rotate(math.Pi)
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		}
+		screen.DrawImage(c.Representation.Image, c.Representation.ImageOptions)
+
+		c.Spawned = true
 	}
-
-	screen.DrawImage(c.Representation.Image, c.Representation.ImageOptions)
-
-	c.Spawned = true
-	// }
 }
 
-func (c *Car) Walk(screen *ebiten.Image) {
-	if c.ShouldWalk {
-		log.Printf("car %v should walk on %v", c.Vehicle.Address, c.Dir)
+func allowLast(arr []*Car) []*Car {
+	for i := 0; i < len(arr); i++ {
+		arr[i].ShouldWalk = true
+	}
+
+	return arr
+}
+
+func (c *Car) Walk(screen *ebiten.Image, idx int) {
+	if c.ShouldWalk && c.Spawned {
 		switch c.Dir {
+
 		case up:
-			log.Println("Moving up-down")
 			c.Position[1] += 30
-			c.Representation.ImageOptions.GeoM.Translate(0, c.Position[1])
+			c.Representation.ImageOptions.GeoM.Translate(0, 30)
+			fmt.Println("c.Position[1]: ", c.Position[1])
+			if c.Position[1] >= 300 {
+				c.Representation.Image.Clear()
+				if len(upSlice) > 0 {
+					upSlice = append(upSlice[:idx], upSlice[idx+1:]...)
+					upSlice = allowLast(upSlice)
+				} else {
+					upSlice = []*Car{}
+				}
+				deleted = append(deleted, c)
+			}
 		case down:
-			c.Position[1] -= 30
-			c.Representation.ImageOptions.GeoM.Translate(0, c.Position[1])
+			c.Position[1] += -30
+			// c.Position[1] -= 1
+			fmt.Println("c.Position[1]: ", c.Position[1])
+			c.Representation.ImageOptions.GeoM.Translate(0, -30)
+			if c.Position[1] <= 300 {
+				c.Representation.Image.Clear()
+				if len(downSlice) > 0 {
+					downSlice = append(downSlice[:idx], downSlice[idx+1:]...)
+					downSlice = allowLast(downSlice)
+				} else {
+					downSlice = []*Car{}
+				}
+				deleted = append(deleted, c)
+			}
 		case left:
 			c.Position[0] += 30
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], 0)
+			c.Representation.ImageOptions.GeoM.Translate(30, 0)
+			if c.Position[0] >= 300 {
+				c.Representation.Image.Clear()
+				if len(leftSlice) > 0 {
+					leftSlice = append(leftSlice[:idx], leftSlice[idx+1:]...)
+					leftSlice = allowLast(leftSlice)
+				} else {
+					leftSlice = []*Car{}
+				}
+				deleted = append(deleted, c)
+			}
 		case right:
-			c.Position[0] -= 30
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], 0)
+			c.Position[0] += -30
+			c.Representation.ImageOptions.GeoM.Translate(-30, 0)
+			if c.Position[0] <= 300 {
+				c.Representation.Image.Clear()
+				if len(rightSlice) > 0 {
+					rightSlice = append(rightSlice[:idx], rightSlice[idx+1:]...)
+					rightSlice = allowLast(rightSlice)
+				} else {
+					rightSlice = []*Car{}
+				}
+				deleted = append(deleted, c)
+			}
 		}
-
-		screen.DrawImage(c.Representation.Image, c.Representation.ImageOptions)
-		time.Sleep(500 * time.Millisecond)
-
 		c.ShouldWalk = false
+	}
+	if c.Spawned {
+		screen.DrawImage(c.Representation.Image, c.Representation.ImageOptions)
+		time.Sleep(250 * time.Millisecond)
 	}
 }
 
@@ -147,11 +198,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// }
 
 	for _, arr := range [][]*Car{upSlice, downSlice, leftSlice, rightSlice} {
-		for _, v := range arr {
-			log.Println("v.ShouldWalk", v.ShouldWalk)
+		if len(arr) == 1 {
+			arr = allowLast(arr)
+		}
+		for idx, v := range arr {
 			// log.Println("Spawning car...")
+			v.Walk(screen, idx)
+			// time.Sleep(500 * time.Millisecond)
 			v.Spawn(screen)
-			v.Walk(screen)
 		}
 	}
 
@@ -201,18 +255,19 @@ func updateCarArr(dSlice []*Car, res []*pb.Vehicle, dir string) (resultArray []*
 	for _, r := range res {
 		// checks if r.shouldwalk
 		// log.Println("r.ShouldWalk:", r.ShouldWalk)
-		if o, idx := contains(r, dSlice); o {
-			// log.Println("Car already in slice")
-			// log.Println("!dSlice[idx].Vehicle.ShouldWalk", !dSlice[idx].Vehicle.ShouldWalk)
-			// log.Println("r.ShouldWalk", r.ShouldWalk)
-			// log.Println("!dSlice[idx].Vehicle.ShouldWalk && r.ShouldWalk", !dSlice[idx].Vehicle.ShouldWalk && r.ShouldWalk)
 
+		if o, _ := contains(r, deleted); o {
+			log.Println("this car was removed")
+			continue
+		}
+
+		if o, idx := contains(r, dSlice); o {
 			if !dSlice[idx].Vehicle.ShouldWalk && r.ShouldWalk {
 				dSlice[idx].ShouldWalk = true
 			}
 
 		} else {
-			// log.Printf("adding car on direction %d", dT)
+			log.Println("Adding car")
 			dSlice = append(dSlice, &Car{
 				Vehicle: r,
 				Representation: &CarRepresentation{

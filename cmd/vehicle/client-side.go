@@ -63,9 +63,10 @@ func NewVehicle(name string) *Vehicle {
 			Address:     hostname,
 			IsLeader:    false,
 			LogicalTime: 0,
-			Direction:   "up",
-			Id:          uuid.NewString(),
-			ShouldWalk:  false,
+			Direction:   randomDirection(),
+			// Direction:  "down",
+			Id:         uuid.NewString(),
+			ShouldWalk: false,
 		},
 
 		peers:           []*pb.Vehicle{},
@@ -196,7 +197,7 @@ func (v *Vehicle) ClientAppendPossible(dir string) bool {
 			IsLeader:    false,
 			LogicalTime: v.LogicalTime,
 			Id:          v.Id,
-			Direction:   randomDirection(),
+			Direction:   "down",
 			// Direction: "up",
 		}}
 
@@ -275,7 +276,7 @@ func (v *Vehicle) ClientRegisterVehicle() {
 		IsLeader:    false,
 		LogicalTime: v.LogicalTime,
 		Id:          v.Id,
-		Direction:   "up",
+		Direction:   rDir,
 	}}
 
 	operation := func(ctx context.Context) error {
@@ -292,18 +293,18 @@ func (v *Vehicle) ClientRegisterVehicle() {
 		log.Printf("could not register vehicle after %d retries: %v", maxRetries, err)
 	}
 
-	upSlice = append(upSlice, v.Vehicle)
+	// downSlice = append(downSlice, v.Vehicle)
 
-	// switch rDir {
-	// case "up":
-	// 	upSlice = append(upSlice, v.Vehicle)
-	// case "down":
-	// 	downSlice = append(downSlice, v.Vehicle)
-	// case "left":
-	// 	leftSlice = append(leftSlice, v.Vehicle)
-	// case "right":
-	// 	rightSlice = append(rightSlice, v.Vehicle)
-	// }
+	switch rDir {
+	case "up":
+		upSlice = append(upSlice, v.Vehicle)
+	case "down":
+		downSlice = append(downSlice, v.Vehicle)
+	case "left":
+		leftSlice = append(leftSlice, v.Vehicle)
+	case "right":
+		rightSlice = append(rightSlice, v.Vehicle)
+	}
 
 }
 
