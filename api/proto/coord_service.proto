@@ -10,6 +10,7 @@ service VehicleDiscovery {
   rpc RegisterVehicle(RegisterVehicleRequest) returns (RegisterVehicleResponse);
   rpc ListRegisteredVehicles(ListRegisteredVehiclesRequest) returns (ListRegisteredVehiclesResponse);
   rpc AppendPossible(AppendPossibleRequest) returns (AppendPossibleResponse);
+  rpc HasLeader(HasLeaderRequest) returns (HasLeaderResponse);
 }
 
 service CoordinationService {
@@ -18,8 +19,17 @@ service CoordinationService {
   rpc UpdateVehicleStatus(UpdateVehicleStatusRequest) returns (UpdateVehicleStatusResponse);
   rpc GetInstructions(GetInstructionsRequest) returns (GetInstructionsResponse);
   rpc ElectLeader(ElectLeaderRequest) returns (ElectLeaderResponse);
+  rpc AppendPossible(AppendPossibleRequest) returns (AppendPossibleResponse);
 }
 
+message HasLeaderRequest {
+  Vehicle requester = 1;
+}
+
+message HasLeaderResponse {
+  bool have_leader = 1;
+  Vehicle leader_info = 2;
+}
 
 message AppendPossibleRequest {
   string dir = 1;
@@ -76,8 +86,9 @@ message RegisterVehicleRequest {
 
 message RegisterVehicleResponse {
   bool success = 1;
-  string message = 2;
-  int64 logical_time = 3;
+  bool newLeader = 2;
+  string message = 3;
+  int64 logical_time = 4;
 }
 
 message UpdateVehicleStatusRequest {
@@ -120,4 +131,5 @@ message Vehicle {
   int64 logical_time = 4;
   bool is_leader = 5;
   string id = 6;
+  bool should_walk = 7;
 }

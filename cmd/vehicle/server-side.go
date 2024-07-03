@@ -34,25 +34,62 @@ func (v *Vehicle) StartServer() {
 	}()
 }
 
+func (v *Vehicle) AppendPossible(ctx context.Context, req *pb.AppendPossibleRequest) (*pb.AppendPossibleResponse, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	var poss bool = false
+
+	switch req.Dir {
+	case "up":
+		poss = len(upSlice) < 2
+	case "down":
+		poss = len(downSlice) < 2
+	case "left":
+		poss = len(leftSlice) < 2
+	case "right":
+		poss = len(rightSlice) < 2
+	}
+
+	log.Printf("AppendPossible : %v", poss)
+
+	return &pb.AppendPossibleResponse{
+		Possible: poss,
+	}, nil
+}
+
 func (v *Vehicle) RegisterVehicle(ctx context.Context, req *pb.RegisterVehicleRequest) (*pb.RegisterVehicleResponse, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
 	log.Printf("RegisterVehicle request: %v", req)
-	v.peers = append(v.peers, req.Vehicle)
 
 	// Atualizar as direções dos veículos
 	switch req.Vehicle.Direction {
 	case "up":
+		for idx := range upSlice {
+			upSlice[idx].ShouldWalk = true
+		}
 		upSlice = append(upSlice, req.Vehicle)
 	case "down":
+		for idx := range downSlice {
+			downSlice[idx].ShouldWalk = true
+		}
 		downSlice = append(downSlice, req.Vehicle)
 	case "left":
+		for idx := range leftSlice {
+			leftSlice[idx].ShouldWalk = true
+		}
 		leftSlice = append(leftSlice, req.Vehicle)
 	case "right":
+		for idx := range rightSlice {
+			rightSlice[idx].ShouldWalk = true
+		}
 		rightSlice = append(rightSlice, req.Vehicle)
 	}
 
+	v.peers = append(v.peers, req.Vehicle)
+	log.Println("peers list:", v.peers)
 	log.Printf("car registered on %s array", req.Vehicle.Direction)
 
 	return &pb.RegisterVehicleResponse{

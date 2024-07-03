@@ -38,11 +38,56 @@ func (vd *VehicleDiscovery) GetVehiclesDirections(ctx context.Context, req *pb.G
 	defer vd.mu.Unlock()
 
 	log.Printf("GetVehiclesDirections request: %v", req)
+	log.Println("Up:", upSlice)
+	log.Println("Down:", downSlice)
+	log.Println("Left:", leftSlice)
+	log.Println("Right:", rightSlice)
+
 	return &pb.GetVehiclesDirectionsResponse{
 		Up:    upSlice,
 		Down:  downSlice,
 		Left:  leftSlice,
 		Right: rightSlice,
+	}, nil
+}
+
+// func (vd *VehicleDiscovery) hasLeader() bool {
+// 	vd.mu.Lock()
+// 	defer vd.mu.Unlock()
+// 	haveLeader := false
+// 	// var leader *pb.Vehicle = nil
+//
+// 	for _, i := range [][]*pb.Vehicle{upSlice, leftSlice, rightSlice, downSlice} {
+// 		for _, v := range i {
+// 			if v.IsLeader {
+// 				haveLeader = true
+// 				// leader = v
+// 			}
+// 		}
+// 	}
+// 	return haveLeader
+//
+// }
+
+func (vd *VehicleDiscovery) HasLeader(ctx context.Context, req *pb.HasLeaderRequest) (*pb.HasLeaderResponse, error) {
+	vd.mu.Lock()
+	defer vd.mu.Unlock()
+	haveLeader := false
+
+	var leader *pb.Vehicle = nil
+
+	for _, i := range [][]*pb.Vehicle{upSlice, leftSlice, rightSlice, downSlice} {
+		for _, v := range i {
+			if v.IsLeader {
+				haveLeader = true
+				leader = v
+			}
+		}
+	}
+
+	return &pb.HasLeaderResponse{
+		HaveLeader: haveLeader,
+		LeaderInfo: leader,
 	}, nil
 }
 
@@ -74,7 +119,11 @@ func (vd *VehicleDiscovery) UpdateVehicleList(ctx context.Context, req *pb.Updat
 	vd.mu.Lock()
 	defer vd.mu.Unlock()
 
+	vd.VehiclesConnected = []*pb.Vehicle{}
+
 	for _, value := range req.Vehicles {
+		vd.VehiclesConnected = append(vd.VehiclesConnected, value)
+
 		switch value.Direction {
 		case "up":
 			upSlice = append(upSlice, value)
@@ -123,6 +172,7 @@ func (vd *VehicleDiscovery) ListRegisteredVehicles(ctx context.Context, req *pb.
 	defer vd.mu.Unlock()
 
 	log.Printf("ListRegisteredVehicles request from address %s, id %s", req.Requester.Address, req.Requester.Id)
+	log.Printf("vd.VehiclesConnected: %v", vd.VehiclesConnected)
 	return &pb.ListRegisteredVehiclesResponse{
 		Vehicles: vd.VehiclesConnected,
 	}, nil

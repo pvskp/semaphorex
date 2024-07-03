@@ -14,23 +14,20 @@ func main() {
 	v := NewVehicle("porshce")
 	v.StartServer()
 	v.ConnectToVDServer()
-	v.ClientRegisterVehicle()
 
 	log.Println("Waiting for peers...")
-	// for {
-	// 	v.GetPeers()
-	// 	if len(v.peers) > 0 {
-	// 		break
-	// 	}
-	// }
 
 	v.GetPeers()
 	if len(v.peers) == 0 {
 		v.IsLeader = true
 		log.Printf("%s is the leader", v.Address)
-	} else {
-		v.InitiateElection()
 	}
+
+	if leaderAddress != "" {
+		v.ConnectToLeader()
+	}
+
+	v.ClientRegisterVehicle()
 
 	defer v.LeaderConn.Close()
 	defer v.DiscoveryConn.Close()

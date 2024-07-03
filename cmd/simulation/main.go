@@ -65,7 +65,7 @@ type Car struct {
 }
 
 func (c *Car) Spawn(screen *ebiten.Image) {
-	log.Println("Spawning car...")
+	// log.Println("Spawning car...")
 	if !c.Spawned {
 		switch c.Dir {
 		case up:
@@ -94,6 +94,7 @@ func (c *Car) Spawn(screen *ebiten.Image) {
 
 func (c *Car) Walk() {
 	if c.ShouldWalk {
+		log.Printf("car %v should walk", c.Vehicle.Address)
 		switch c.Dir {
 		case up:
 			c.Position[0] += 30
@@ -108,6 +109,8 @@ func (c *Car) Walk() {
 			c.Position[1] -= 30
 			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		}
+
+		c.ShouldWalk = false
 	}
 }
 
@@ -137,7 +140,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, arr := range [][]*Car{upSlice, downSlice, leftSlice, rightSlice} {
 		for _, v := range arr {
-			log.Println("Spawning car...")
+			// log.Println("Spawning car...")
 			v.Spawn(screen)
 			v.Walk()
 		}
@@ -156,6 +159,7 @@ func main() {
 	// Specify the window size as you like. Here, a doubled size is specified.
 	ebiten.SetWindowSize(width, height)
 	ebiten.SetWindowTitle("Intersection simulator")
+	log.Println("Starting intersection simulator...")
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
@@ -185,15 +189,22 @@ func updateCarArr(dSlice []*Car, res []*pb.Vehicle, dir string) (resultArray []*
 		dT = right
 	}
 
+	log.Println(res)
+
 	for _, r := range res {
 		if o, idx := contains(r, dSlice); o {
-			log.Println("Car already in slice")
-			if dSlice[idx].Vehicle.Direction == "go" && r.Direction == "stop" {
+			// log.Println("Car already in slice")
+			// log.Println("!dSlice[idx].Vehicle.ShouldWalk", !dSlice[idx].Vehicle.ShouldWalk)
+			// log.Println("r.ShouldWalk", r.ShouldWalk)
+			// log.Println("!dSlice[idx].Vehicle.ShouldWalk && r.ShouldWalk", !dSlice[idx].Vehicle.ShouldWalk && r.ShouldWalk)
+
+			if !dSlice[idx].Vehicle.ShouldWalk && r.ShouldWalk {
 				dSlice[idx].ShouldWalk = true
+				log.Println("This car should walk")
 			}
 
 		} else {
-			log.Printf("adding car on direction %d", dT)
+			// log.Printf("adding car on direction %d", dT)
 			dSlice = append(dSlice, &Car{
 				Vehicle: r,
 				Representation: &CarRepresentation{
@@ -214,7 +225,7 @@ func checkForUpdates() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	log.Println("Requiring directions from server...")
+	// log.Println("Requiring directions from server...")
 	req := &pb.GetVehiclesDirectionsRequest{
 		RequesterName: "simulation_ui",
 	}

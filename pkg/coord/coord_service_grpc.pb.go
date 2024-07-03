@@ -27,6 +27,7 @@ type VehicleDiscoveryClient interface {
 	RegisterVehicle(ctx context.Context, in *RegisterVehicleRequest, opts ...grpc.CallOption) (*RegisterVehicleResponse, error)
 	ListRegisteredVehicles(ctx context.Context, in *ListRegisteredVehiclesRequest, opts ...grpc.CallOption) (*ListRegisteredVehiclesResponse, error)
 	AppendPossible(ctx context.Context, in *AppendPossibleRequest, opts ...grpc.CallOption) (*AppendPossibleResponse, error)
+	HasLeader(ctx context.Context, in *HasLeaderRequest, opts ...grpc.CallOption) (*HasLeaderResponse, error)
 }
 
 type vehicleDiscoveryClient struct {
@@ -82,6 +83,15 @@ func (c *vehicleDiscoveryClient) AppendPossible(ctx context.Context, in *AppendP
 	return out, nil
 }
 
+func (c *vehicleDiscoveryClient) HasLeader(ctx context.Context, in *HasLeaderRequest, opts ...grpc.CallOption) (*HasLeaderResponse, error) {
+	out := new(HasLeaderResponse)
+	err := c.cc.Invoke(ctx, "/coord.VehicleDiscovery/HasLeader", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VehicleDiscoveryServer is the server API for VehicleDiscovery service.
 // All implementations must embed UnimplementedVehicleDiscoveryServer
 // for forward compatibility
@@ -91,6 +101,7 @@ type VehicleDiscoveryServer interface {
 	RegisterVehicle(context.Context, *RegisterVehicleRequest) (*RegisterVehicleResponse, error)
 	ListRegisteredVehicles(context.Context, *ListRegisteredVehiclesRequest) (*ListRegisteredVehiclesResponse, error)
 	AppendPossible(context.Context, *AppendPossibleRequest) (*AppendPossibleResponse, error)
+	HasLeader(context.Context, *HasLeaderRequest) (*HasLeaderResponse, error)
 	mustEmbedUnimplementedVehicleDiscoveryServer()
 }
 
@@ -112,6 +123,9 @@ func (UnimplementedVehicleDiscoveryServer) ListRegisteredVehicles(context.Contex
 }
 func (UnimplementedVehicleDiscoveryServer) AppendPossible(context.Context, *AppendPossibleRequest) (*AppendPossibleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AppendPossible not implemented")
+}
+func (UnimplementedVehicleDiscoveryServer) HasLeader(context.Context, *HasLeaderRequest) (*HasLeaderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HasLeader not implemented")
 }
 func (UnimplementedVehicleDiscoveryServer) mustEmbedUnimplementedVehicleDiscoveryServer() {}
 
@@ -216,6 +230,24 @@ func _VehicleDiscovery_AppendPossible_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VehicleDiscovery_HasLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HasLeaderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VehicleDiscoveryServer).HasLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/coord.VehicleDiscovery/HasLeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VehicleDiscoveryServer).HasLeader(ctx, req.(*HasLeaderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VehicleDiscovery_ServiceDesc is the grpc.ServiceDesc for VehicleDiscovery service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -243,6 +275,10 @@ var VehicleDiscovery_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "AppendPossible",
 			Handler:    _VehicleDiscovery_AppendPossible_Handler,
 		},
+		{
+			MethodName: "HasLeader",
+			Handler:    _VehicleDiscovery_HasLeader_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "api/proto/coord_service.proto",
@@ -257,6 +293,7 @@ type CoordinationServiceClient interface {
 	UpdateVehicleStatus(ctx context.Context, in *UpdateVehicleStatusRequest, opts ...grpc.CallOption) (*UpdateVehicleStatusResponse, error)
 	GetInstructions(ctx context.Context, in *GetInstructionsRequest, opts ...grpc.CallOption) (*GetInstructionsResponse, error)
 	ElectLeader(ctx context.Context, in *ElectLeaderRequest, opts ...grpc.CallOption) (*ElectLeaderResponse, error)
+	AppendPossible(ctx context.Context, in *AppendPossibleRequest, opts ...grpc.CallOption) (*AppendPossibleResponse, error)
 }
 
 type coordinationServiceClient struct {
@@ -312,6 +349,15 @@ func (c *coordinationServiceClient) ElectLeader(ctx context.Context, in *ElectLe
 	return out, nil
 }
 
+func (c *coordinationServiceClient) AppendPossible(ctx context.Context, in *AppendPossibleRequest, opts ...grpc.CallOption) (*AppendPossibleResponse, error) {
+	out := new(AppendPossibleResponse)
+	err := c.cc.Invoke(ctx, "/coord.CoordinationService/AppendPossible", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoordinationServiceServer is the server API for CoordinationService service.
 // All implementations must embed UnimplementedCoordinationServiceServer
 // for forward compatibility
@@ -321,6 +367,7 @@ type CoordinationServiceServer interface {
 	UpdateVehicleStatus(context.Context, *UpdateVehicleStatusRequest) (*UpdateVehicleStatusResponse, error)
 	GetInstructions(context.Context, *GetInstructionsRequest) (*GetInstructionsResponse, error)
 	ElectLeader(context.Context, *ElectLeaderRequest) (*ElectLeaderResponse, error)
+	AppendPossible(context.Context, *AppendPossibleRequest) (*AppendPossibleResponse, error)
 	mustEmbedUnimplementedCoordinationServiceServer()
 }
 
@@ -342,6 +389,9 @@ func (UnimplementedCoordinationServiceServer) GetInstructions(context.Context, *
 }
 func (UnimplementedCoordinationServiceServer) ElectLeader(context.Context, *ElectLeaderRequest) (*ElectLeaderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ElectLeader not implemented")
+}
+func (UnimplementedCoordinationServiceServer) AppendPossible(context.Context, *AppendPossibleRequest) (*AppendPossibleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendPossible not implemented")
 }
 func (UnimplementedCoordinationServiceServer) mustEmbedUnimplementedCoordinationServiceServer() {}
 
@@ -446,6 +496,24 @@ func _CoordinationService_ElectLeader_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoordinationService_AppendPossible_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AppendPossibleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoordinationServiceServer).AppendPossible(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/coord.CoordinationService/AppendPossible",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoordinationServiceServer).AppendPossible(ctx, req.(*AppendPossibleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CoordinationService_ServiceDesc is the grpc.ServiceDesc for CoordinationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -472,6 +540,10 @@ var CoordinationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ElectLeader",
 			Handler:    _CoordinationService_ElectLeader_Handler,
+		},
+		{
+			MethodName: "AppendPossible",
+			Handler:    _CoordinationService_AppendPossible_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

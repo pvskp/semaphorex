@@ -64,6 +64,7 @@ func NewVehicle(name string) *Vehicle {
 			IsLeader:    false,
 			LogicalTime: 0,
 			Id:          uuid.NewString(),
+			ShouldWalk:  false,
 		},
 
 		peers:           []*pb.Vehicle{},
@@ -83,8 +84,9 @@ func (v *Vehicle) UpdateVehicleList() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	allPeers := append(v.peers, v.Vehicle)
 	req := &pb.UpdateVehicleListRequest{
-		Vehicles:    v.peers,
+		Vehicles:    allPeers,
 		LogicalTime: v.LogicalTime,
 	}
 
@@ -97,7 +99,7 @@ func (v *Vehicle) UpdateVehicleList() {
 		if !res.Success {
 			log.Println("Error updating vehicle list")
 		} else {
-			log.Println("Vehicle list updated successfully")
+			// log.Println("Vehicle list updated successfully")
 		}
 		return nil
 	}
@@ -168,7 +170,13 @@ func randomDirection() string {
 }
 
 func (v *Vehicle) ClientAppendPossible(dir string) bool {
-	client := v.DiscoveryClient.(pb.VehicleDiscoveryClient)
+	var client SpecialClient
+	if _, ok := v.LeaderClient.(pb.CoordinationServiceClient); !ok {
+		client = v.DiscoveryClient.(pb.VehicleDiscoveryClient)
+	} else {
+		client = v.LeaderClient.(pb.CoordinationServiceClient)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -203,10 +211,41 @@ func (v *Vehicle) ClientAppendPossible(dir string) bool {
 
 }
 
+func (v *Vehicle) HasLeader() bool {
+	client := v.DiscoveryClient.(pb.VehicleDiscoveryClient)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req := &pb.HasLeaderRequest{
+		Requester: v.Vehicle,
+	}
+
+	for i := 0; i < maxRetries; i++ {
+		res, err := client.HasLeader(ctx, req)
+		if err == nil {
+			log.Printf("RegisterVehicle Response: %v", res)
+			leaderAddress = res.LeaderInfo.Address
+			return res.HaveLeader
+		}
+
+		st, ok := status.FromError(err)
+		if ok && (st.Code() == codes.Unavailable || st.Code() == codes.DeadlineExceeded) {
+			log.Printf("Retry %d/%d: operation failed: %v", i+1, maxRetries, err)
+			time.Sleep(retryDelay)
+			continue
+		}
+	}
+	return false
+}
+
 func (v *Vehicle) ClientRegisterVehicle() {
 	client := v.LeaderClient
+
 	if client == nil {
 		client = v.DiscoveryClient
+		log.Println("Registering on discovery server")
+	} else {
+		log.Println("Registering on leader server")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -220,12 +259,6 @@ func (v *Vehicle) ClientRegisterVehicle() {
 		rDir = randomDirection()
 		fmt.Printf("Trying to append on %s\n", rDir)
 	}
-
-	fmt.Println("Name:", v.Name)
-	fmt.Println("Address:", v.Address)
-	fmt.Println("IsLeader:", false)
-	fmt.Println("LogicalTime:", v.LogicalTime)
-	fmt.Println("Id:", v.Id)
 
 	req := &pb.RegisterVehicleRequest{Vehicle: &pb.Vehicle{
 		Name:        v.Name,
@@ -298,10 +331,12 @@ func (v *Vehicle) GetPeers() {
 		for _, value := range res.Vehicles {
 			if value.IsLeader {
 				leaderAddress = value.Address
+				log.Println("Found leader: ", leaderAddress)
 			}
 
 			if value.Address != v.Address {
 				v.peers = append(v.peers, value)
+				log.Println("Found a peer!")
 			}
 		}
 		return nil
@@ -380,7 +415,7 @@ func (v *Vehicle) InitiateElection() {
 
 	if newLeaderId == v.Id {
 		v.IsLeader = true
-		log.Printf("Vehicle %s is the new coordinator", v.Id)
+		log.Printf("Vehicle %s is the new coordinator", v.Address)
 	} else {
 		v.IsLeader = false
 		log.Printf("Vehicle %s is not the leader. New leader is %s, from address %s", v.Id, newLeaderId, leaderAddress)

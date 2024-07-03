@@ -11,6 +11,7 @@ import (
 
 type SpecialClient interface {
 	RegisterVehicle(ctx context.Context, in *pb.RegisterVehicleRequest, opts ...grpc.CallOption) (*pb.RegisterVehicleResponse, error)
+	AppendPossible(ctx context.Context, in *pb.AppendPossibleRequest, opts ...grpc.CallOption) (*pb.AppendPossibleResponse, error)
 }
 
 type Vehicle struct {
