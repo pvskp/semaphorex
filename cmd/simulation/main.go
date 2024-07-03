@@ -18,11 +18,12 @@ import (
 )
 
 var (
-	bg        *ebiten.Image
-	redCar    *ebiten.Image
-	blueCar   *ebiten.Image
-	purpleCar *ebiten.Image
-	yellowCar *ebiten.Image
+	bg *ebiten.Image
+
+	// redCar    *ebiten.Image
+	// blueCar   *ebiten.Image
+	// purpleCar *ebiten.Image
+	// yellowCar *ebiten.Image
 
 	serverConn    *grpc.ClientConn
 	serverClient  pb.VehicleDiscoveryClient
@@ -117,26 +118,25 @@ func (c *Car) Walk(screen *ebiten.Image, idx int) {
 				c.Representation.Image.Clear()
 				if len(upSlice) > 0 {
 					upSlice = append(upSlice[:idx], upSlice[idx+1:]...)
-					upSlice = allowLast(upSlice)
+					//upSlice = allowLast(upSlice)
 				} else {
 					upSlice = []*Car{}
 				}
-				deleted = append(deleted, c)
+				//deleted = append(deleted, c)
 			}
 		case down:
 			c.Position[1] += -30
-			// c.Position[1] -= 1
 			fmt.Println("c.Position[1]: ", c.Position[1])
 			c.Representation.ImageOptions.GeoM.Translate(0, -30)
 			if c.Position[1] <= 300 {
 				c.Representation.Image.Clear()
 				if len(downSlice) > 0 {
 					downSlice = append(downSlice[:idx], downSlice[idx+1:]...)
-					downSlice = allowLast(downSlice)
+					//downSlice = allowLast(downSlice)
 				} else {
 					downSlice = []*Car{}
 				}
-				deleted = append(deleted, c)
+				//deleted = append(deleted, c)
 			}
 		case left:
 			c.Position[0] += 30
@@ -145,11 +145,11 @@ func (c *Car) Walk(screen *ebiten.Image, idx int) {
 				c.Representation.Image.Clear()
 				if len(leftSlice) > 0 {
 					leftSlice = append(leftSlice[:idx], leftSlice[idx+1:]...)
-					leftSlice = allowLast(leftSlice)
+					//leftSlice = allowLast(leftSlice)
 				} else {
 					leftSlice = []*Car{}
 				}
-				deleted = append(deleted, c)
+				//deleted = append(deleted, c)
 			}
 		case right:
 			c.Position[0] += -30
@@ -158,11 +158,11 @@ func (c *Car) Walk(screen *ebiten.Image, idx int) {
 				c.Representation.Image.Clear()
 				if len(rightSlice) > 0 {
 					rightSlice = append(rightSlice[:idx], rightSlice[idx+1:]...)
-					rightSlice = allowLast(rightSlice)
+					//rightSlice = allowLast(rightSlice)
 				} else {
 					rightSlice = []*Car{}
 				}
-				deleted = append(deleted, c)
+				//deleted = append(deleted, c)
 			}
 		}
 		c.ShouldWalk = false
@@ -197,14 +197,46 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	//
 	// }
 
+	// var yellow bool = false
+	// var blue bool = false
+	// var purple bool = false
+	//
+	// for idx, c := range upSlice {
+	// 	c.Walk(screen, idx)
+	// 	c.Spawn(screen)
+	// 	purple = true
+	// }
+	//
+	// if blue {
+	// 	for idx, c := range downSlice {
+	// 		c.Walk(screen, idx)
+	// 		c.Spawn(screen)
+	// 		yellow = true
+	// 	}
+	// }
+	//
+	// if purple {
+	// 	for idx, c := range rightSlice {
+	// 		c.Walk(screen, idx)
+	// 		c.Spawn(screen)
+	// 		blue = true
+	// 	}
+	// }
+	//
+	// if yellow {
+	// 	for idx, c := range leftSlice {
+	// 		c.Walk(screen, idx)
+	// 		c.Spawn(screen)
+	// 		blue = true
+	// 	}
+	// }
+
 	for _, arr := range [][]*Car{upSlice, downSlice, leftSlice, rightSlice} {
 		if len(arr) == 1 {
 			arr = allowLast(arr)
 		}
 		for idx, v := range arr {
-			// log.Println("Spawning car...")
 			v.Walk(screen, idx)
-			// time.Sleep(500 * time.Millisecond)
 			v.Spawn(screen)
 		}
 	}
@@ -298,7 +330,7 @@ func checkForUpdates() {
 		return
 	}
 
-	log.Println("got response: ", res)
+	// log.Println("got response: ", res)
 
 	upSlice = updateCarArr(upSlice, res.Up, "up")
 	downSlice = updateCarArr(downSlice, res.Down, "down")
@@ -327,23 +359,23 @@ func init() {
 		log.Fatal(err)
 	}
 
-	redCar, _, err = ebitenutil.NewImageFromFile("./red_car.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	blueCar, _, err = ebitenutil.NewImageFromFile("./blue_car.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	yellowCar, _, err = ebitenutil.NewImageFromFile("./yellow_car.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	purpleCar, _, err = ebitenutil.NewImageFromFile("./purple_car.png")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// redCar, _, err = ebitenutil.NewImageFromFile("./red_car.png")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// blueCar, _, err = ebitenutil.NewImageFromFile("./blue_car.png")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// yellowCar, _, err = ebitenutil.NewImageFromFile("./yellow_car.png")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// purpleCar, _, err = ebitenutil.NewImageFromFile("./purple_car.png")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
