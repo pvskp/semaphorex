@@ -75,7 +75,6 @@ func (c *Car) Spawn(screen *ebiten.Image) {
 			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
 		case down:
 			c.Representation.Image = blueCar
-
 			c.Position = []float64{600, 280}
 			c.Representation.ImageOptions.GeoM.Rotate(math.Pi)
 			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
@@ -97,23 +96,27 @@ func (c *Car) Spawn(screen *ebiten.Image) {
 	// }
 }
 
-func (c *Car) Walk() {
+func (c *Car) Walk(screen *ebiten.Image) {
 	if c.ShouldWalk {
-		// log.Printf("car %v should walk", c.Vehicle.Address)
+		log.Printf("car %v should walk on %v", c.Vehicle.Address, c.Dir)
 		switch c.Dir {
 		case up:
-			c.Position[0] += 30
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
-		case down:
-			c.Position[0] -= 30
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
-		case left:
+			log.Println("Moving up-down")
 			c.Position[1] += 30
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
-		case right:
+			c.Representation.ImageOptions.GeoM.Translate(0, c.Position[1])
+		case down:
 			c.Position[1] -= 30
-			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
+			c.Representation.ImageOptions.GeoM.Translate(0, c.Position[1])
+		case left:
+			c.Position[0] += 30
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], 0)
+		case right:
+			c.Position[0] -= 30
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], 0)
 		}
+
+		screen.DrawImage(c.Representation.Image, c.Representation.ImageOptions)
+		time.Sleep(500 * time.Millisecond)
 
 		c.ShouldWalk = false
 	}
@@ -145,9 +148,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, arr := range [][]*Car{upSlice, downSlice, leftSlice, rightSlice} {
 		for _, v := range arr {
+			log.Println("v.ShouldWalk", v.ShouldWalk)
 			// log.Println("Spawning car...")
 			v.Spawn(screen)
-			v.Walk()
+			v.Walk(screen)
 		}
 	}
 
@@ -194,9 +198,9 @@ func updateCarArr(dSlice []*Car, res []*pb.Vehicle, dir string) (resultArray []*
 		dT = right
 	}
 
-	// log.Println(res)
-
 	for _, r := range res {
+		// checks if r.shouldwalk
+		// log.Println("r.ShouldWalk:", r.ShouldWalk)
 		if o, idx := contains(r, dSlice); o {
 			// log.Println("Car already in slice")
 			// log.Println("!dSlice[idx].Vehicle.ShouldWalk", !dSlice[idx].Vehicle.ShouldWalk)
@@ -205,7 +209,6 @@ func updateCarArr(dSlice []*Car, res []*pb.Vehicle, dir string) (resultArray []*
 
 			if !dSlice[idx].Vehicle.ShouldWalk && r.ShouldWalk {
 				dSlice[idx].ShouldWalk = true
-				log.Println("This car should walk")
 			}
 
 		} else {
@@ -239,6 +242,8 @@ func checkForUpdates() {
 		log.Printf("Failed to get vehicle directions: %v", err)
 		return
 	}
+
+	log.Println("got response: ", res)
 
 	upSlice = updateCarArr(upSlice, res.Up, "up")
 	downSlice = updateCarArr(downSlice, res.Down, "down")

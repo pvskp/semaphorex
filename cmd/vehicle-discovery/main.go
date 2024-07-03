@@ -37,11 +37,11 @@ func (vd *VehicleDiscovery) GetVehiclesDirections(ctx context.Context, req *pb.G
 	vd.mu.Lock()
 	defer vd.mu.Unlock()
 
-	log.Printf("GetVehiclesDirections request: %v", req)
-	log.Println("Up:", upSlice)
-	log.Println("Down:", downSlice)
-	log.Println("Left:", leftSlice)
-	log.Println("Right:", rightSlice)
+	// log.Printf("GetVehiclesDirections request: %v", req)
+	log.Println("returning upslice:", upSlice)
+	log.Println("returning downslice:", downSlice)
+	log.Println("returning leftslice:", leftSlice)
+	log.Println("returning rightslice:", rightSlice)
 
 	return &pb.GetVehiclesDirectionsResponse{
 		Up:    upSlice,
@@ -121,6 +121,12 @@ func (vd *VehicleDiscovery) UpdateVehicleList(ctx context.Context, req *pb.Updat
 
 	vd.VehiclesConnected = []*pb.Vehicle{}
 
+	log.Println("Received the following vehicles:", req.Vehicles)
+	upSlice = []*pb.Vehicle{}
+	downSlice = []*pb.Vehicle{}
+	leftSlice = []*pb.Vehicle{}
+	rightSlice = []*pb.Vehicle{}
+
 	for _, value := range req.Vehicles {
 		vd.VehiclesConnected = append(vd.VehiclesConnected, value)
 
@@ -135,6 +141,12 @@ func (vd *VehicleDiscovery) UpdateVehicleList(ctx context.Context, req *pb.Updat
 			rightSlice = append(rightSlice, value)
 		}
 	}
+
+	log.Println("upslice after, ", upSlice)
+	for _, c := range vd.VehiclesConnected {
+		log.Println("after received, ", c.Address, c.ShouldWalk)
+	}
+
 	return &pb.UpdateVehicleListResponse{
 		Success: true,
 	}, nil

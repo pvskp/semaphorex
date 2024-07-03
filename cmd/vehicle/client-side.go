@@ -63,6 +63,7 @@ func NewVehicle(name string) *Vehicle {
 			Address:     hostname,
 			IsLeader:    false,
 			LogicalTime: 0,
+			Direction:   "up",
 			Id:          uuid.NewString(),
 			ShouldWalk:  false,
 		},
@@ -88,7 +89,9 @@ func (v *Vehicle) UpdateVehicleList() {
 	for _, i := range [][]*pb.Vehicle{upSlice, leftSlice, rightSlice, downSlice} {
 		allPeers = append(allPeers, i...)
 	}
-	allPeers = append(allPeers, v.Vehicle)
+
+	// allPeers = append(allPeers, v.Vehicle)
+	log.Println("allPeers", allPeers)
 
 	req := &pb.UpdateVehicleListRequest{
 		Vehicles:    allPeers,
@@ -194,6 +197,7 @@ func (v *Vehicle) ClientAppendPossible(dir string) bool {
 			LogicalTime: v.LogicalTime,
 			Id:          v.Id,
 			Direction:   randomDirection(),
+			// Direction: "up",
 		}}
 
 	for i := 0; i < maxRetries; i++ {
@@ -271,7 +275,7 @@ func (v *Vehicle) ClientRegisterVehicle() {
 		IsLeader:    false,
 		LogicalTime: v.LogicalTime,
 		Id:          v.Id,
-		Direction:   rDir,
+		Direction:   "up",
 	}}
 
 	operation := func(ctx context.Context) error {
@@ -287,6 +291,20 @@ func (v *Vehicle) ClientRegisterVehicle() {
 	if err != nil {
 		log.Printf("could not register vehicle after %d retries: %v", maxRetries, err)
 	}
+
+	upSlice = append(upSlice, v.Vehicle)
+
+	// switch rDir {
+	// case "up":
+	// 	upSlice = append(upSlice, v.Vehicle)
+	// case "down":
+	// 	downSlice = append(downSlice, v.Vehicle)
+	// case "left":
+	// 	leftSlice = append(leftSlice, v.Vehicle)
+	// case "right":
+	// 	rightSlice = append(rightSlice, v.Vehicle)
+	// }
+
 }
 
 func (v *Vehicle) ClientGetInstructions() {

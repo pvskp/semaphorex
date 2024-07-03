@@ -143,7 +143,7 @@ func (v *Vehicle) GetInstructions(ctx context.Context, req *pb.GetInstructionsRe
 
 	v.LogicalTime++
 
-	log.Printf("GetInstructions request: %v", req)
+	// log.Printf("GetInstructions request: %v", req)
 	return &pb.GetInstructionsResponse{
 		Instruction: "proceed",
 		LogicalTime: v.LogicalTime,
