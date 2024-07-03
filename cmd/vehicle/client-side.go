@@ -197,7 +197,7 @@ func (v *Vehicle) ClientAppendPossible(dir string) bool {
 			IsLeader:    false,
 			LogicalTime: v.LogicalTime,
 			Id:          v.Id,
-			Direction:   "down",
+			Direction:   randomDirection(),
 			// Direction: "up",
 		}}
 
@@ -262,6 +262,7 @@ func (v *Vehicle) ClientRegisterVehicle() {
 	defer cancel()
 
 	rDir := randomDirection()
+	// rDir := "up"
 
 	fmt.Printf("Trying to append on %s\n", rDir)
 	for !(v.ClientAppendPossible(rDir)) {

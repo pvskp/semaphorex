@@ -98,6 +98,18 @@ func (c *Car) Spawn(screen *ebiten.Image) {
 	}
 }
 
+func allDeleted(arr []*Car) bool {
+	if len(arr) > 0 {
+		for _, v := range arr {
+			if contain, _ := contains(v.Vehicle, deleted); contain {
+				return false
+			}
+		}
+
+	}
+	return true
+}
+
 func allowLast(arr []*Car) []*Car {
 	for i := 0; i < len(arr); i++ {
 		arr[i].ShouldWalk = true
@@ -117,12 +129,12 @@ func (c *Car) Walk(screen *ebiten.Image, idx int) {
 			if c.Position[1] >= 300 {
 				c.Representation.Image.Clear()
 				if len(upSlice) > 0 {
-					upSlice = append(upSlice[:idx], upSlice[idx+1:]...)
+					// upSlice = append(upSlice[:idx], upSlice[idx+1:]...)
 					//upSlice = allowLast(upSlice)
 				} else {
 					upSlice = []*Car{}
 				}
-				//deleted = append(deleted, c)
+				deleted = append(deleted, c)
 			}
 		case down:
 			c.Position[1] += -30
@@ -131,12 +143,12 @@ func (c *Car) Walk(screen *ebiten.Image, idx int) {
 			if c.Position[1] <= 300 {
 				c.Representation.Image.Clear()
 				if len(downSlice) > 0 {
-					downSlice = append(downSlice[:idx], downSlice[idx+1:]...)
+					// downSlice = append(downSlice[:idx], downSlice[idx+1:]...)
 					//downSlice = allowLast(downSlice)
 				} else {
 					downSlice = []*Car{}
 				}
-				//deleted = append(deleted, c)
+				deleted = append(deleted, c)
 			}
 		case left:
 			c.Position[0] += 30
@@ -144,12 +156,12 @@ func (c *Car) Walk(screen *ebiten.Image, idx int) {
 			if c.Position[0] >= 300 {
 				c.Representation.Image.Clear()
 				if len(leftSlice) > 0 {
-					leftSlice = append(leftSlice[:idx], leftSlice[idx+1:]...)
+					// leftSlice = append(leftSlice[:idx], leftSlice[idx+1:]...)
 					//leftSlice = allowLast(leftSlice)
 				} else {
 					leftSlice = []*Car{}
 				}
-				//deleted = append(deleted, c)
+				deleted = append(deleted, c)
 			}
 		case right:
 			c.Position[0] += -30
@@ -157,12 +169,12 @@ func (c *Car) Walk(screen *ebiten.Image, idx int) {
 			if c.Position[0] <= 300 {
 				c.Representation.Image.Clear()
 				if len(rightSlice) > 0 {
-					rightSlice = append(rightSlice[:idx], rightSlice[idx+1:]...)
+					// rightSlice = append(rightSlice[:idx], rightSlice[idx+1:]...)
 					//rightSlice = allowLast(rightSlice)
 				} else {
 					rightSlice = []*Car{}
 				}
-				//deleted = append(deleted, c)
+				deleted = append(deleted, c)
 			}
 		}
 		c.ShouldWalk = false
@@ -190,56 +202,103 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(bg, bgOp)
 	// screen.DrawImage(redCar, nil)
 
-	// spawn all non-spawned Cars
-	// log.Printf("rightSlice len == %d", len(rightSlice))
-	// for _, r := range rightSlice {
-	// 	r.Spawn(screen)
-	//
-	// }
+	var (
+		purple, blue, yellow = false, false, false
+	)
 
-	// var yellow bool = false
-	// var blue bool = false
-	// var purple bool = false
-	//
-	// for idx, c := range upSlice {
-	// 	c.Walk(screen, idx)
-	// 	c.Spawn(screen)
-	// 	purple = true
-	// }
-	//
-	// if blue {
-	// 	for idx, c := range downSlice {
-	// 		c.Walk(screen, idx)
-	// 		c.Spawn(screen)
-	// 		yellow = true
-	// 	}
-	// }
-	//
-	// if purple {
-	// 	for idx, c := range rightSlice {
-	// 		c.Walk(screen, idx)
-	// 		c.Spawn(screen)
-	// 		blue = true
-	// 	}
-	// }
-	//
-	// if yellow {
-	// 	for idx, c := range leftSlice {
-	// 		c.Walk(screen, idx)
-	// 		c.Spawn(screen)
-	// 		blue = true
-	// 	}
-	// }
-
-	for _, arr := range [][]*Car{upSlice, downSlice, leftSlice, rightSlice} {
-		if len(arr) == 1 {
-			arr = allowLast(arr)
-		}
-		for idx, v := range arr {
+	for idx, v := range upSlice {
+		if contain, _ := contains(v.Vehicle, deleted); !contain {
 			v.Walk(screen, idx)
 			v.Spawn(screen)
 		}
+
+		if idx != 0 && idx == len(upSlice)-1 {
+			if d, _ := contains(upSlice[idx-1].Vehicle, deleted); d {
+				upSlice[idx].ShouldWalk = true
+			}
+		}
+
+		if allDeleted(upSlice) {
+			purple = true
+		}
 	}
+
+	if purple { //right
+		for idx, v := range rightSlice {
+			if len(rightSlice) == 1 {
+				rightSlice[0].ShouldWalk = true
+			}
+			if contain, _ := contains(v.Vehicle, deleted); !contain {
+				v.Walk(screen, idx)
+				v.Spawn(screen)
+			}
+
+			if idx != 0 && idx == len(rightSlice)-1 {
+				if d, _ := contains(rightSlice[idx-1].Vehicle, deleted); d {
+					rightSlice[idx].ShouldWalk = true
+				}
+			}
+
+			if allDeleted(rightSlice) {
+				blue = true
+			}
+		}
+	}
+
+	if blue { //down
+		for idx, v := range downSlice {
+			if len(downSlice) == 1 {
+				downSlice[0].ShouldWalk = true
+			}
+			if contain, _ := contains(v.Vehicle, deleted); !contain {
+				v.Walk(screen, idx)
+				v.Spawn(screen)
+			}
+
+			if idx != 0 && idx == len(downSlice)-1 {
+				if d, _ := contains(downSlice[idx-1].Vehicle, deleted); d {
+					downSlice[idx].ShouldWalk = true
+				}
+			}
+
+			if allDeleted(downSlice) {
+				yellow = true
+			}
+		}
+	}
+
+	if yellow { //left
+		for idx, v := range leftSlice {
+			if len(leftSlice) == 1 {
+				leftSlice[0].ShouldWalk = true
+			}
+			if contain, _ := contains(v.Vehicle, deleted); !contain {
+				v.Walk(screen, idx)
+				v.Spawn(screen)
+			}
+
+			if idx != 0 && idx == len(leftSlice)-1 {
+				if d, _ := contains(leftSlice[idx-1].Vehicle, deleted); d {
+					leftSlice[idx].ShouldWalk = true
+				}
+			}
+		}
+	}
+
+	// for _, arr := range [][]*Car{upSlice, downSlice, leftSlice, rightSlice} {
+	//
+
+	// for idx, v := range arr {
+	// 	if len(arr) == 1 {
+	// 		upSlice[0].ShouldWalk = true
+	// 	}
+	// 	if contain, _ := contains(v.Vehicle, deleted); !contain {
+	// 		v.Walk(screen, idx)
+	// 		v.Spawn(screen)
+	//
+	// 	}
+	// }
+	// }
 
 }
 
