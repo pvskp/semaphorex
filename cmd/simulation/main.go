@@ -94,7 +94,7 @@ func (c *Car) Spawn(screen *ebiten.Image) {
 
 func (c *Car) Walk() {
 	if c.ShouldWalk {
-		log.Printf("car %v should walk", c.Vehicle.Address)
+		// log.Printf("car %v should walk", c.Vehicle.Address)
 		switch c.Dir {
 		case up:
 			c.Position[0] += 30
@@ -189,7 +189,7 @@ func updateCarArr(dSlice []*Car, res []*pb.Vehicle, dir string) (resultArray []*
 		dT = right
 	}
 
-	log.Println(res)
+	// log.Println(res)
 
 	for _, r := range res {
 		if o, idx := contains(r, dSlice); o {

@@ -84,9 +84,8 @@ func (v *Vehicle) UpdateVehicleList() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	allPeers := append(v.peers, v.Vehicle)
 	req := &pb.UpdateVehicleListRequest{
-		Vehicles:    allPeers,
+		Vehicles:    append(v.peers, v.Vehicle),
 		LogicalTime: v.LogicalTime,
 	}
 

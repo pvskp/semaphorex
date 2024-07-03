@@ -69,21 +69,25 @@ func (v *Vehicle) RegisterVehicle(ctx context.Context, req *pb.RegisterVehicleRe
 	case "up":
 		for idx := range upSlice {
 			upSlice[idx].ShouldWalk = true
+			log.Println("upSlice should walk: ", upSlice[idx].ShouldWalk)
 		}
 		upSlice = append(upSlice, req.Vehicle)
 	case "down":
 		for idx := range downSlice {
 			downSlice[idx].ShouldWalk = true
+			log.Println("downSlice should walk: ", downSlice[idx].ShouldWalk)
 		}
 		downSlice = append(downSlice, req.Vehicle)
 	case "left":
 		for idx := range leftSlice {
 			leftSlice[idx].ShouldWalk = true
+			log.Println("leftSlice should walk: ", leftSlice[idx].ShouldWalk)
 		}
 		leftSlice = append(leftSlice, req.Vehicle)
 	case "right":
 		for idx := range rightSlice {
 			rightSlice[idx].ShouldWalk = true
+			log.Println("rightSlice should walk: ", rightSlice[idx].ShouldWalk)
 		}
 		rightSlice = append(rightSlice, req.Vehicle)
 	}
