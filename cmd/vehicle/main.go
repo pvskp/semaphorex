@@ -42,9 +42,11 @@ func main() {
 			}
 			log.Printf("%s is not the leader. Getting instructions from %s...", v.Address, leaderAddress)
 			v.ClientGetInstructions()
+			v.GetPeers()
 
 			if !v.ClientCheckLeaderHealth() {
 				v.InitiateElection()
+				v.ConnectToLeader()
 			}
 		}
 		time.Sleep(1 * time.Second)

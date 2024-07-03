@@ -92,7 +92,6 @@ func (v *Vehicle) UpdateVehicleList() {
 	}
 
 	// allPeers = append(allPeers, v.Vehicle)
-	log.Println("allPeers", allPeers)
 
 	req := &pb.UpdateVehicleListRequest{
 		Vehicles:    allPeers,
@@ -324,7 +323,7 @@ func (v *Vehicle) ClientGetInstructions() {
 		if err != nil {
 			return err
 		}
-		log.Printf("GetInstructions Response: %v", res)
+		log.Printf("Got instruction: %v", res.Instruction)
 		v.LogicalTime = res.LogicalTime
 		return nil
 	}
@@ -352,18 +351,28 @@ func (v *Vehicle) GetPeers() {
 			return err
 		}
 
-		// log.Printf("ListRegisteredVehicles Response: %v", res)
-		for _, value := range res.Vehicles {
-			if value.IsLeader {
-				leaderAddress = value.Address
+		v.peers = res.Vehicles
+
+		for _, p := range v.peers {
+			if p.IsLeader && leaderAddress == "" {
+				leaderAddress = p.Address
 				log.Println("Found leader: ", leaderAddress)
 			}
-
-			if value.Address != v.Address {
-				v.peers = append(v.peers, value)
-				log.Println("Found a peer!")
-			}
 		}
+
+		// log.Printf("ListRegisteredVehicles Response: %v", res)
+		// for _, value := range res.Vehicles {
+		// 	if value.IsLeader && leaderAddress == "" {
+		// 		leaderAddress = value.Address
+		// 		log.Println("Found leader: ", leaderAddress)
+		// 	}
+		//
+		// 	if value.Address != v.Address {
+		// 		v.peers = append(v.peers, value)
+		// 		log.Println("Found a peer!")
+		// 	}
+		// }
+
 		return nil
 	}
 
@@ -382,6 +391,7 @@ func (v *Vehicle) InitiateElection() {
 	var wg sync.WaitGroup
 	v.mu.Unlock()
 
+	log.Println("My peers are: ", v.peers)
 	for _, peer := range v.peers {
 		wg.Add(1)
 		log.Printf("Trying to connect to peer %v...", peer)

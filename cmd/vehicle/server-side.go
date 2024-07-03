@@ -94,7 +94,6 @@ func (v *Vehicle) RegisterVehicle(ctx context.Context, req *pb.RegisterVehicleRe
 
 	v.peers = append(v.peers, req.Vehicle)
 	log.Println("peers list:", v.peers)
-	log.Printf("car registered on %s array", req.Vehicle.Direction)
 
 	return &pb.RegisterVehicleResponse{
 		Success: true,
@@ -145,7 +144,7 @@ func (v *Vehicle) GetInstructions(ctx context.Context, req *pb.GetInstructionsRe
 
 	// log.Printf("GetInstructions request: %v", req)
 	return &pb.GetInstructionsResponse{
-		Instruction: "proceed",
+		Instruction: randomDirection(),
 		LogicalTime: v.LogicalTime,
 	}, nil
 }
@@ -161,7 +160,6 @@ func (v *Vehicle) ElectLeader(ctx context.Context, req *pb.ElectLeaderRequest) (
 
 	v.LogicalTime++
 
-	// Lógica para eleger um líder
 	if v.Id > req.RequesterId {
 		return &pb.ElectLeaderResponse{
 			LeaderId:      v.Id,
