@@ -17,14 +17,20 @@ func main() {
 	v.ClientRegisterVehicle()
 
 	log.Println("Waiting for peers...")
-	for {
-		v.GetPeers()
-		if len(v.peers) > 0 {
-			break
-		}
-	}
+	// for {
+	// 	v.GetPeers()
+	// 	if len(v.peers) > 0 {
+	// 		break
+	// 	}
+	// }
 
-	v.InitiateElection()
+	v.GetPeers()
+	if len(v.peers) == 0 {
+		v.IsLeader = true
+		log.Printf("%s is the leader", v.Address)
+	} else {
+		v.InitiateElection()
+	}
 
 	defer v.LeaderConn.Close()
 	defer v.DiscoveryConn.Close()
@@ -40,7 +46,7 @@ func main() {
 			log.Printf("%s is not the leader. Getting instructions from %s...", v.Address, leaderAddress)
 			v.ClientGetInstructions()
 
-			if !v.CheckLeaderHealth() {
+			if !v.ClientCheckLeaderHealth() {
 				v.InitiateElection()
 			}
 		}

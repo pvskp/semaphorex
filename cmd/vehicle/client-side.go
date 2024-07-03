@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"sync"
 	"time"
@@ -59,10 +60,10 @@ func NewVehicle(name string) *Vehicle {
 	return &Vehicle{
 		Vehicle: &pb.Vehicle{
 			Name:        name,
-			Id:          uuid.NewString(),
 			Address:     hostname,
 			IsLeader:    false,
 			LogicalTime: 0,
+			Id:          uuid.NewString(),
 		},
 
 		peers:           []*pb.Vehicle{},
@@ -78,12 +79,13 @@ func (v *Vehicle) UpdateVehicleList() {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
-	client := v.DiscoveryClient
+	client := v.DiscoveryClient.(pb.VehicleDiscoveryClient)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	req := &pb.UpdateVehicleListRequest{
-		Vehicles: v.peers,
+		Vehicles:    v.peers,
+		LogicalTime: v.LogicalTime,
 	}
 
 	operation := func(ctx context.Context) error {
@@ -102,7 +104,7 @@ func (v *Vehicle) UpdateVehicleList() {
 
 	err := retry(ctx, operation)
 	if err != nil {
-		log.Fatalf("could not update vehicle list after %d retries: %v", maxRetries, err)
+		log.Printf("could not update vehicle list after %d retries: %v", maxRetries, err)
 	}
 }
 
@@ -113,7 +115,7 @@ func (v *Vehicle) ConnectToLeader() {
 	log.Printf("Connecting to leader %s", leaderAddress)
 	leaderConn, err := grpc.NewClient(leaderAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Printf("did not connect: %v", err)
 	}
 
 	v.LeaderConn = leaderConn
@@ -127,27 +129,111 @@ func (v *Vehicle) ConnectToVDServer() {
 
 	discoveryConn, err := grpc.NewClient(SDServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Printf("did not connect: %v", err)
 	}
 
 	v.DiscoveryConn = discoveryConn
 	v.DiscoveryClient = pb.NewVehicleDiscoveryClient(v.DiscoveryConn)
 }
 
-func (v *Vehicle) CheckLeaderHealth() bool {
+func (v *Vehicle) ClientCheckLeaderHealth() bool {
+	client := v.LeaderClient.(pb.CoordinationServiceClient)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req := &pb.CheckLeaderHealthRequest{
+		LogicalTime: v.LogicalTime,
+	}
+
+	operation := func(ctx context.Context) error {
+		res, err := client.CheckLeaderHealth(ctx, req)
+		if err != nil {
+			return err
+		}
+		log.Printf("CheckLeaderHealth response: %v", res)
+		return nil
+	}
+
+	err := retry(ctx, operation)
+	if err != nil {
+		log.Printf("Leader's health check failed in the last %d retries: %v", maxRetries, err)
+		return false
+	}
+
+	return true
+}
+
+func randomDirection() string {
+	return []string{"up", "down", "left", "right"}[rand.Intn(4)]
+}
+
+func (v *Vehicle) ClientAppendPossible(dir string) bool {
+	client := v.DiscoveryClient.(pb.VehicleDiscoveryClient)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req := &pb.AppendPossibleRequest{
+		Dir: dir,
+		Requester: &pb.Vehicle{
+			Name:        v.Name,
+			Address:     v.Address,
+			IsLeader:    false,
+			LogicalTime: v.LogicalTime,
+			Id:          v.Id,
+			Direction:   randomDirection(),
+		}}
+
+	for i := 0; i < maxRetries; i++ {
+		res, err := client.AppendPossible(ctx, req)
+
+		if err == nil {
+			log.Printf("AppendPossible Response: %v", res)
+			return res.Possible
+		}
+
+		st, ok := status.FromError(err)
+		if ok && (st.Code() == codes.Unavailable || st.Code() == codes.DeadlineExceeded) {
+			log.Printf("Retry %d/%d: operation failed: %v", i+1, maxRetries, err)
+			time.Sleep(retryDelay)
+			continue
+		}
+
+	}
 	return false
+
 }
 
 func (v *Vehicle) ClientRegisterVehicle() {
-	client := v.DiscoveryClient
+	client := v.LeaderClient
+	if client == nil {
+		client = v.DiscoveryClient
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	rDir := randomDirection()
+
+	fmt.Printf("Trying to append on %s\n", rDir)
+	for !(v.ClientAppendPossible(rDir)) {
+		log.Println("Failed to append on position, retrying...")
+		rDir = randomDirection()
+		fmt.Printf("Trying to append on %s\n", rDir)
+	}
+
+	fmt.Println("Name:", v.Name)
+	fmt.Println("Address:", v.Address)
+	fmt.Println("IsLeader:", false)
+	fmt.Println("LogicalTime:", v.LogicalTime)
+	fmt.Println("Id:", v.Id)
 
 	req := &pb.RegisterVehicleRequest{Vehicle: &pb.Vehicle{
 		Name:        v.Name,
 		Address:     v.Address,
 		IsLeader:    false,
 		LogicalTime: v.LogicalTime,
+		Id:          v.Id,
+		Direction:   rDir,
 	}}
 
 	operation := func(ctx context.Context) error {
@@ -161,16 +247,19 @@ func (v *Vehicle) ClientRegisterVehicle() {
 
 	err := retry(ctx, operation)
 	if err != nil {
-		log.Fatalf("could not register vehicle after %d retries: %v", maxRetries, err)
+		log.Printf("could not register vehicle after %d retries: %v", maxRetries, err)
 	}
 }
 
 func (v *Vehicle) ClientGetInstructions() {
-	client := v.LeaderClient
+	client := v.LeaderClient.(pb.CoordinationServiceClient)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.GetInstructionsRequest{VehicleAddress: v.Address}
+	req := &pb.GetInstructionsRequest{
+		VehicleAddress: v.Address,
+		LogicalTime:    v.LogicalTime,
+	}
 
 	operation := func(ctx context.Context) error {
 		res, err := client.GetInstructions(ctx, req)
@@ -184,7 +273,7 @@ func (v *Vehicle) ClientGetInstructions() {
 
 	err := retry(ctx, operation)
 	if err != nil {
-		log.Fatalf("could not get instructions after %d retries: %v", maxRetries, err)
+		log.Printf("could not get instructions after %d retries: %v", maxRetries, err)
 	}
 }
 
@@ -192,17 +281,20 @@ func (v *Vehicle) GetPeers() {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
-	client := v.DiscoveryClient
+	client := v.DiscoveryClient.(pb.VehicleDiscoveryClient)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	operation := func(ctx context.Context) error {
-		res, err := client.ListRegisteredVehicles(ctx, &pb.ListRegisteredVehiclesRequest{})
+		res, err := client.ListRegisteredVehicles(ctx, &pb.ListRegisteredVehiclesRequest{
+			Requester: v.Vehicle,
+		})
+
 		if err != nil {
 			return err
 		}
 
-		log.Printf("ListRegisteredVehicles Response: %v", res)
+		// log.Printf("ListRegisteredVehicles Response: %v", res)
 		for _, value := range res.Vehicles {
 			if value.IsLeader {
 				leaderAddress = value.Address
@@ -216,8 +308,9 @@ func (v *Vehicle) GetPeers() {
 	}
 
 	err := retry(ctx, operation)
+
 	if err != nil {
-		log.Fatalf("could not get peers after %d retries: %v", maxRetries, err)
+		log.Printf("could not get peers after %d retries: %v", maxRetries, err)
 	}
 }
 
@@ -290,6 +383,6 @@ func (v *Vehicle) InitiateElection() {
 		log.Printf("Vehicle %s is the new coordinator", v.Id)
 	} else {
 		v.IsLeader = false
-		log.Printf("Vehicle %s is not the leader. New leader is %s, from address", v.Id, newLeaderId)
+		log.Printf("Vehicle %s is not the leader. New leader is %s, from address %s", v.Id, newLeaderId, leaderAddress)
 	}
 }

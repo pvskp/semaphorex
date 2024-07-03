@@ -9,34 +9,62 @@ service VehicleDiscovery {
   rpc GetVehiclesDirections(GetVehiclesDirectionsRequest) returns (GetVehiclesDirectionsResponse);
   rpc RegisterVehicle(RegisterVehicleRequest) returns (RegisterVehicleResponse);
   rpc ListRegisteredVehicles(ListRegisteredVehiclesRequest) returns (ListRegisteredVehiclesResponse);
+  rpc AppendPossible(AppendPossibleRequest) returns (AppendPossibleResponse);
 }
 
 service CoordinationService {
-  // rpc RegisterVehicle(RegisterVehicleRequest) returns (RegisterVehicleResponse);
+  rpc RegisterVehicle(RegisterVehicleRequest) returns (RegisterVehicleResponse);
+  rpc CheckLeaderHealth(CheckLeaderHealthRequest) returns (CheckLeaderHealthResponse);
   rpc UpdateVehicleStatus(UpdateVehicleStatusRequest) returns (UpdateVehicleStatusResponse);
   rpc GetInstructions(GetInstructionsRequest) returns (GetInstructionsResponse);
   rpc ElectLeader(ElectLeaderRequest) returns (ElectLeaderResponse);
 }
 
-message GetVehiclesDirectionsRequest {}
+
+message AppendPossibleRequest {
+  string dir = 1;
+  Vehicle requester = 2;
+}
+
+message AppendPossibleResponse {
+  bool possible = 2;
+}
+
+
+message CheckLeaderHealthRequest {
+  int64 logical_time = 1;
+}
+message CheckLeaderHealthResponse {
+  bool success = 1;
+  int64 logical_time = 2;
+}
+
+message GetVehiclesDirectionsRequest {
+  string requester_name = 1;
+  int64 logical_time = 2;
+}
 
 message GetVehiclesDirectionsResponse {
   repeated Vehicle up = 1;
   repeated Vehicle right = 2;
   repeated Vehicle down = 3;
   repeated Vehicle left = 4;
-
+  int64 logical_time = 5;
 }
 
 message UpdateVehicleListRequest {
   repeated Vehicle vehicles = 1;
+  int64 logical_time = 2;
 }
 
 message UpdateVehicleListResponse {
   bool success = 1;
+  int64 logical_time = 2;
 }
 
-message ListRegisteredVehiclesRequest {}
+message ListRegisteredVehiclesRequest {
+  Vehicle requester = 1;
+}
 
 message ListRegisteredVehiclesResponse {
   repeated Vehicle vehicles = 1;
@@ -49,15 +77,18 @@ message RegisterVehicleRequest {
 message RegisterVehicleResponse {
   bool success = 1;
   string message = 2;
+  int64 logical_time = 3;
 }
 
 message UpdateVehicleStatusRequest {
   Vehicle vehicle = 1;
+  int64 logical_time = 2;
 }
 
 message UpdateVehicleStatusResponse {
   bool success = 1;
   string message = 2;
+  int64 logical_time = 3;
 }
 
 message GetInstructionsRequest {

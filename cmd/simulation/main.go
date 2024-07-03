@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+
+	// "fmt"
 	"log"
 	"math"
 	"os"
@@ -25,16 +27,89 @@ var (
 	serverClient  pb.VehicleDiscoveryClient
 	serverAddress string
 
-	upSlice    = []*pb.Vehicle{}
-	downSlice  = []*pb.Vehicle{}
-	rightSlice = []*pb.Vehicle{}
-	leftSlice  = []*pb.Vehicle{}
+	upSlice    = []*Car{}
+	downSlice  = []*Car{}
+	rightSlice = []*Car{}
+	leftSlice  = []*Car{}
+)
+
+type Direction int
+
+const (
+	up Direction = iota
+	down
+	left
+	right
 )
 
 const (
 	width  = 600
 	height = 600
+
+	// UpCenter   = 320
+	// DownCenter = 600
 )
+
+type CarRepresentation struct {
+	Image        *ebiten.Image
+	ImageOptions *ebiten.DrawImageOptions
+}
+
+type Car struct {
+	Vehicle        *pb.Vehicle
+	Representation *CarRepresentation
+	ShouldWalk     bool
+	Dir            Direction
+	Position       []float64
+	Spawned        bool
+}
+
+func (c *Car) Spawn(screen *ebiten.Image) {
+	log.Println("Spawning car...")
+	if !c.Spawned {
+		switch c.Dir {
+		case up:
+			c.Representation.Image = redCar
+			c.Representation.ImageOptions.GeoM.Rotate(math.Pi / 2)
+			c.Representation.ImageOptions.GeoM.Translate(280, 0)
+		case down:
+			c.Representation.Image = blueCar
+			c.Representation.ImageOptions.GeoM.Rotate(math.Pi)
+			c.Representation.ImageOptions.GeoM.Translate(600, 280)
+		case left:
+			c.Representation.Image = yellowCar
+			c.Representation.ImageOptions.GeoM.Translate(0, 320)
+		case right:
+			c.Representation.Image = purpleCar
+			c.Representation.ImageOptions.GeoM.Rotate(3 * math.Pi / 2)
+			c.Representation.ImageOptions.GeoM.Translate(320, 600)
+		}
+	}
+
+	screen.DrawImage(c.Representation.Image, c.Representation.ImageOptions)
+
+	c.Spawned = true
+	// }
+}
+
+func (c *Car) Walk() {
+	if c.ShouldWalk {
+		switch c.Dir {
+		case up:
+			c.Position[0] += 30
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
+		case down:
+			c.Position[0] -= 30
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
+		case left:
+			c.Position[1] += 30
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
+		case right:
+			c.Position[1] -= 30
+			c.Representation.ImageOptions.GeoM.Translate(c.Position[0], c.Position[1])
+		}
+	}
+}
 
 // Game implements ebiten.Game interface.
 type Game struct{}
@@ -42,7 +117,6 @@ type Game struct{}
 // Update proceeds the game state.
 // Update is called every tick (1/60 [s] by default).
 func (g *Game) Update() error {
-	// Write your game's logical update.
 	checkForUpdates()
 	return nil
 }
@@ -52,15 +126,23 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	bgOp := &ebiten.DrawImageOptions{}
 	screen.DrawImage(bg, bgOp)
+	// screen.DrawImage(redCar, nil)
 
-	for _, vehicle := range vehicleList {
-		spawnVehicle(screen, vehicle)
+	// spawn all non-spawned Cars
+	// log.Printf("rightSlice len == %d", len(rightSlice))
+	// for _, r := range rightSlice {
+	// 	r.Spawn(screen)
+	//
+	// }
+
+	for _, arr := range [][]*Car{upSlice, downSlice, leftSlice, rightSlice} {
+		for _, v := range arr {
+			log.Println("Spawning car...")
+			v.Spawn(screen)
+			v.Walk()
+		}
 	}
 
-	spawnRedCar(screen)
-	spawnBlueCar(screen)
-	spawnYellowCar(screen)
-	spawnPurpleCar(screen)
 }
 
 // Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
@@ -73,62 +155,89 @@ func main() {
 	game := &Game{}
 	// Specify the window size as you like. Here, a doubled size is specified.
 	ebiten.SetWindowSize(width, height)
-	ebiten.SetWindowTitle("Your game's title")
-	// Call ebiten.RunGame to start your game loop.
+	ebiten.SetWindowTitle("Intersection simulator")
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func spawnRedCar(screen *ebiten.Image) {
-	redCarOp := &ebiten.DrawImageOptions{}
-	redCarOp.GeoM.Rotate(math.Pi / 2)
-	redCarOp.GeoM.Translate(280, 0)
-	screen.DrawImage(redCar, redCarOp)
+func contains(v *pb.Vehicle, vArr []*Car) (bool, int) {
+	for i, r := range vArr {
+		if r.Vehicle.Id == v.Id {
+			return true, i
+		}
+	}
+
+	return false, -1
 }
 
-func spawnBlueCar(screen *ebiten.Image) {
-	blueCarOp := &ebiten.DrawImageOptions{}
-	blueCarOp.GeoM.Rotate(math.Pi)
-	blueCarOp.GeoM.Translate(600, 280)
-	screen.DrawImage(blueCar, blueCarOp)
-}
+func updateCarArr(dSlice []*Car, res []*pb.Vehicle, dir string) (resultArray []*Car) {
+	var dT Direction
 
-func spawnYellowCar(screen *ebiten.Image) {
-	yellowCarOp := &ebiten.DrawImageOptions{}
-	// yellowCarOp.GeoM.Rotate(0)
-	yellowCarOp.GeoM.Translate(0, 320)
-	screen.DrawImage(yellowCar, yellowCarOp)
-}
+	switch dir {
+	case "up":
+		dT = up
+	case "down":
+		dT = down
+	case "left":
+		dT = left
+	case "right":
+		dT = right
+	}
 
-func spawnPurpleCar(screen *ebiten.Image) {
-	purpleCarOp := &ebiten.DrawImageOptions{}
-	purpleCarOp.GeoM.Rotate(3 * math.Pi / 2)
-	purpleCarOp.GeoM.Translate(320, 600)
-	screen.DrawImage(purpleCar, purpleCarOp)
+	for _, r := range res {
+		if o, idx := contains(r, dSlice); o {
+			log.Println("Car already in slice")
+			if dSlice[idx].Vehicle.Direction == "go" && r.Direction == "stop" {
+				dSlice[idx].ShouldWalk = true
+			}
+
+		} else {
+			log.Printf("adding car on direction %d", dT)
+			dSlice = append(dSlice, &Car{
+				Vehicle: r,
+				Representation: &CarRepresentation{
+					Image:        nil,
+					ImageOptions: &ebiten.DrawImageOptions{},
+				},
+				ShouldWalk: false,
+				Dir:        dT,
+				Spawned:    false,
+				Position:   []float64{},
+			})
+		}
+	}
+	return dSlice
 }
 
 func checkForUpdates() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.GetVehiclesDirectionsRequest{}
+	log.Println("Requiring directions from server...")
+	req := &pb.GetVehiclesDirectionsRequest{
+		RequesterName: "simulation_ui",
+	}
 	res, err := serverClient.GetVehiclesDirections(ctx, req)
 	if err != nil {
 		log.Printf("Failed to get vehicle directions: %v", err)
 		return
 	}
 
-	upSlice = res.Up
-	downSlice = res.Down
-	leftSlice = res.Left
-	rightSlice = res.Right
+	upSlice = updateCarArr(upSlice, res.Up, "up")
+	downSlice = updateCarArr(downSlice, res.Down, "down")
+	leftSlice = updateCarArr(leftSlice, res.Left, "left")
+	rightSlice = updateCarArr(rightSlice, res.Right, "right")
+
 }
 
 func init() {
 	var err error
 
 	serverAddress = os.Getenv("SD_SERVER_ADDRESS")
+	if serverAddress == "" {
+		log.Fatalf("No server address provided. Set env variable SD_SERVER_ADDRESS")
+	}
 
 	serverConn, err = grpc.NewClient(serverAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

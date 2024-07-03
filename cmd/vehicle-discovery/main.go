@@ -28,6 +28,7 @@ func NewVehicleDiscovery(port int) *VehicleDiscovery {
 	return &VehicleDiscovery{
 		Port:              port,
 		VehiclesConnected: []*pb.Vehicle{},
+		mu:                sync.Mutex{},
 	}
 
 }
@@ -36,11 +37,36 @@ func (vd *VehicleDiscovery) GetVehiclesDirections(ctx context.Context, req *pb.G
 	vd.mu.Lock()
 	defer vd.mu.Unlock()
 
+	log.Printf("GetVehiclesDirections request: %v", req)
 	return &pb.GetVehiclesDirectionsResponse{
 		Up:    upSlice,
 		Down:  downSlice,
 		Left:  leftSlice,
 		Right: rightSlice,
+	}, nil
+}
+
+func (vd *VehicleDiscovery) AppendPossible(ctx context.Context, req *pb.AppendPossibleRequest) (*pb.AppendPossibleResponse, error) {
+	vd.mu.Lock()
+	defer vd.mu.Unlock()
+
+	var poss bool = false
+
+	switch req.Dir {
+	case "up":
+		poss = len(upSlice) < 2
+	case "down":
+		poss = len(downSlice) < 2
+	case "left":
+		poss = len(leftSlice) < 2
+	case "right":
+		poss = len(rightSlice) < 2
+	}
+
+	log.Printf("AppendPossible : %v", poss)
+
+	return &pb.AppendPossibleResponse{
+		Possible: poss,
 	}, nil
 }
 
@@ -84,6 +110,8 @@ func (vd *VehicleDiscovery) RegisterVehicle(ctx context.Context, req *pb.Registe
 		rightSlice = append(rightSlice, req.Vehicle)
 	}
 
+	log.Printf("car registered on %s array", req.Vehicle.Direction)
+
 	return &pb.RegisterVehicleResponse{
 		Success: true,
 		Message: "Vehicle registered successfully",
@@ -94,7 +122,7 @@ func (vd *VehicleDiscovery) ListRegisteredVehicles(ctx context.Context, req *pb.
 	vd.mu.Lock()
 	defer vd.mu.Unlock()
 
-	log.Printf("ListRegisteredVehicles request: %v", req)
+	log.Printf("ListRegisteredVehicles request from address %s, id %s", req.Requester.Address, req.Requester.Id)
 	return &pb.ListRegisteredVehiclesResponse{
 		Vehicles: vd.VehiclesConnected,
 	}, nil
