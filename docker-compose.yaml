@@ -48,17 +48,20 @@ services:
     ports:
       - "50053:50053"
   #
-  # vehicle4:
-  #   build:
-  #     context: .
-  #     dockerfile: ./cmd/vehicle/Dockerfile
-  #   depends_on:
-  #     - vehicle-discovery
-  #   environment:
-  #     - VEHICLE_PORT=50054
-  #     - SD_SERVER_ADDRESS=localhost:8001
-  #   ports:
-  #     - "50054:50054"
+
+  vehicle4:
+    build:
+      context: .
+      dockerfile: ./cmd/vehicle/Dockerfile
+    depends_on:
+      - vehicle-discovery
+    environment:
+      - VEHICLE_NAME=vehicle4
+      - VEHICLE_PORT=50055
+      - SD_SERVER_ADDRESS=vehicle-discovery:8001
+    ports:
+      - "50054:50054"
+
   #
   # vehicle5:
   #   build:
